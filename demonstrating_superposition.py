@@ -121,7 +121,7 @@ def train(trainloader: DataLoader,input_dim:int, hidden_dim: int, epochs: int, m
 # %% 
 input_dim = 20
 hidden_dim = 5
-sparsity = 0.
+sparsity = 0.7
 importance = t.tensor([.7 ** i for i  in range(input_dim)])
 data = generate_synthetic_data(20, 100000, sparsity)
 
@@ -146,28 +146,35 @@ def plot_weights_and_bias(W, b):
     plt.show()
 plot_weights_and_bias(W, b)
 #%% if necessary, continue training
-model = train(trainloader, input_dim, hidden_dim, epochs=10, model=model)
+#model = train(trainloader, input_dim, hidden_dim, epochs=10, model=model)
 
 #%% Visualization
-def compute_superposition(W) -> list[t.Tensor]:
+def superposition_metric(W: t.Tensor) -> list[t.Tensor]:
+    """computes the following metrics for representation and superposition for all column vectors
+    W: input tensor of shape ( _ , num_features)
+        
+    output:
+    representation: tensor of shape (num_features), the j-th entry is the maximum norms of the column vectors W_j
+    superposition: tensor of shape (num_features), the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
+    """
     num_features = W.shape[1]
     matrix = W.T @ W
-    representation = t.einsum('ij, kj -> j', matrix, matrix) ** .5
-    superposition = t.einsum('ij, kl -> j', matrix, matrix)
-    superposition -= representation ** 2
-    return (superposition, representation)
+    representation = reduce(matrix*matrix, 'i j -> j', 'max') **.5 #t.einsum('ij, ij -> j', matrix, matrix) ** .5
+    superposition = t.einsum('ij, kl -> ik', matrix, matrix) ** 2
+    mask = t.ones((num_features, num_features)) - t.diag_embed(t.ones(num_features))
+    superposition = superposition * mask
+    superposition = reduce(superposition, 'i j -> j', 'sum')
+    return (representation, superposition)
 
    
         
 def visualize_superposition(W):
-    representation, superposition = compute_superposition(model.weights)
-    
+    representation, superposition = superposition_metric(model.weights)
     fig, ax = plt.subplots()
     features = range(num_features) 
     bars = representation.detach().numpy()
-    bars = bars / bars.max()
     color_values = superposition.detach().numpy()
-    color_values = color_values / color_values.max()
+    color_values = color_values / 1.1 #color_values.max()
     cmap = mlp.colormaps['cividis_r']
     bar_colors = [cmap(color) for color in color_values]
     
@@ -196,8 +203,8 @@ for sparsity in sparsities:
     models[sparsity] = train(trainloaders[sparsity], input_dim=num_features, hidden_dim=reduce_to_dim, epochs = 15)
     plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
 #%%
-models[0.] = train(trainloaders[0.], input_dim=num_features, hidden_dim=reduce_to_dim, epochs=10, model=models[0.])
-plot_weights_and_bias(models[0.].weights.data, models[0.].bias.data)
+# models[0.] = train(trainloaders[0.], input_dim=num_features, hidden_dim=reduce_to_dim, epochs=10, model=models[0.])
+# plot_weights_and_bias(models[0.].weights.data, models[0.].bias.data)
 # %%
 fig = plt.figure(figsize=(14.4, 2))
 grid = ImageGrid(fig, 111,  
@@ -212,4 +219,6 @@ for ax, im in zip(grid, plotpairs):
     ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
     ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
 plt.show()
-# %%
+
+#%%
+
