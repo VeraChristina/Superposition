@@ -1,6 +1,6 @@
 #%%
 import torch as t
-from typing import Union
+from typing import Union, Optional
 from einops import rearrange, reduce, repeat
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
@@ -98,9 +98,12 @@ def weighted_MSE(x, x_hat, weights= 1) -> float:
 
 
 #%% Training
-def train(trainloader: DataLoader,input_dim:int, hidden_dim: int, epochs: int) -> ProjectAndRecover:
-    model = ProjectAndRecover(input_dim, hidden_dim).to(device).train()
-    optimizer = t.optim.Adam(model.parameters(), lr = .001, )
+def train(trainloader: DataLoader,input_dim:int, hidden_dim: int, epochs: int, model: Optional[ProjectAndRecover]=None) -> ProjectAndRecover:
+    """trains model on data provided in trainloader; if no model is provided a PojectAndRecover model is initialized and trained
+    """
+    if model is None:
+        model = ProjectAndRecover(input_dim, hidden_dim).to(device).train()
+    optimizer = t.optim.Adam(model.parameters(),lr=.001)
     for epoch in tqdm(range(epochs)):
         for i, x in enumerate(trainloader):
             x = x.to(device)
@@ -126,8 +129,9 @@ batch_size = 128
 trainloader = DataLoader(tuple((data)), batch_size= batch_size)
 device = 'cpu'
 
-model = train(trainloader, input_dim = input_dim, hidden_dim=hidden_dim, epochs=20)
-#%% Visualization
+model = train(trainloader, input_dim = input_dim, hidden_dim=hidden_dim, epochs=25)
+
+#%% Heat maps
 W = model.weights.data
 b = model.bias.data
 def plot_weights_and_bias(W, b):
@@ -141,6 +145,40 @@ def plot_weights_and_bias(W, b):
     grid[0].set_title(f'Weight matrix and bias for sparsity {sparsity}')
     plt.show()
 plot_weights_and_bias(W, b)
+#%% if necessary, continue training
+model = train(trainloader, input_dim, hidden_dim, epochs=10, model=model)
+
+#%% Visualization
+def compute_superposition(W) -> list[t.Tensor]:
+    num_features = W.shape[1]
+    matrix = W.T @ W
+    representation = t.einsum('ij, kj -> j', matrix, matrix) ** .5
+    superposition = t.einsum('ij, kl -> j', matrix, matrix)
+    superposition -= representation ** 2
+    return (superposition, representation)
+
+   
+        
+def visualize_superposition(W):
+    representation, superposition = compute_superposition(model.weights)
+    
+    fig, ax = plt.subplots()
+    features = range(num_features) 
+    bars = representation.detach().numpy()
+    bars = bars / bars.max()
+    color_values = superposition.detach().numpy()
+    color_values = color_values / color_values.max()
+    cmap = mlp.colormaps['cividis_r']
+    bar_colors = [cmap(color) for color in color_values]
+    
+    ax.invert_yaxis()
+    ax.barh(features, bars, color=bar_colors)
+    ax.set_ylabel('features')
+    ax.set_box_aspect(2)
+
+    plt.show()
+        
+visualize_superposition(model.weights)
 
 #%% Train different sparsities
 num_features = 20
@@ -157,7 +195,9 @@ for sparsity in sparsities:
     trainloaders[sparsity] = DataLoader(tuple((datasets[sparsity])), batch_size= batch_size)
     models[sparsity] = train(trainloaders[sparsity], input_dim=num_features, hidden_dim=reduce_to_dim, epochs = 15)
     plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
-
+#%%
+models[0.] = train(trainloaders[0.], input_dim=num_features, hidden_dim=reduce_to_dim, epochs=10, model=models[0.])
+plot_weights_and_bias(models[0.].weights.data, models[0.].bias.data)
 # %%
 fig = plt.figure(figsize=(14.4, 2))
 grid = ImageGrid(fig, 111,  
