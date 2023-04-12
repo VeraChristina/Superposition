@@ -1,0 +1,27 @@
+#%% Test Data
+def test_data_sparsity(data, target_sparsity):
+    """test wether each feature in data is sparsely distributed, i.e. zero with probability sparsity"""
+    data = (data == t.tensor([0]))
+    empiric_sparsity = reduce(data, 'b f -> f', 'sum') / data.shape[0]
+    allclose(empiric_sparsity, t.ones(data.shape[1]) * target_sparsity, .01)
+
+def assert_shape_equal(actual: t.Tensor, expected: t.Tensor) -> None:
+    if actual.shape != expected.shape:
+        raise AssertionError(f"expected shape={expected.shape}, got {actual.shape}")
+
+
+def allclose(actual: t.Tensor, expected: t.Tensor, rtol=1e-4) -> None:
+    assert_shape_equal(actual, expected)
+    left = (actual - expected).abs()
+    right = rtol * expected.abs()
+    num_wrong = (left > right).sum().item()
+    if num_wrong > 0:
+        print(f"Test failed. Max absolute deviation: {left.max()}")
+        print(f"Actual:\n{actual}\nExpected:\n{expected}")
+        raise AssertionError(f"allclose failed with {num_wrong} / {left.nelement()} entries outside tolerance")
+    else:
+        print(f"Test passed with max absolute deviation of {left.max()}")
+
+sparsity = 0.7
+data = generate_synthetic_data(30, 500000, sparsity)
+test_data_sparsity(data, sparsity)

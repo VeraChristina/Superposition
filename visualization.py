@@ -1,56 +1,52 @@
 #%%
 import torch as t
 import os
+from einops import rearrange, reduce, repeat
 
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.pyplot import matshow
 
-SMALL_MODELS_PATHNAME = "./model-weights/section2-small"
-BIG_MODELS_PATHNAME = "./model-weights/section2-big"
+from training import ProjectAndRecover
 
-#%%
-sparsities = [0., .7, .9, .97, .99, .997, .999]
-small_models = {}
+SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
+BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
+device = 'cpu'
 
-for sparsity in sparsities:
-    model_filename = SMALL_MODELS_PATHNAME + str(sparsity)
-    if os.path.exists(model_filename):
-        small_models[sparsity] = t.load(model_filename)
-        small_models[sparsity].eval()
-    else:
-        raise ImportError
+#%% load trained models
+if __name__ == "__main__":
+    sparsities = [0., .7, .9, .97, .99, .997, .999]
+    small_models = {}
 
-#%%
-fig = plt.figure(figsize=(14.4, 2))
-grid = ImageGrid(fig, 111,  
-                nrows_ncols=(1, 14),
-                axes_pad=0.1
-                )
-plotpairs =[]
-for sparsity in sparsities:
-    W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
-    plotpairs += [W.T @ W, b.reshape((len(b), 1))]
-for ax, im in zip(grid, plotpairs):
-    ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-    ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
-plt.show()
+    num_features = 20                                                     
+    hidden_dim = 5
+    importance = t.tensor([.7 ** i for i  in range(num_features)])        
+
+    for sparsity in sparsities:
+        model_filename = SMALL_MODELS_PATHNAME + str(sparsity)
+        if os.path.exists(model_filename):
+            small_models[sparsity] = ProjectAndRecover(num_features, hidden_dim, importance).to(device).train()
+            small_models[sparsity].load_state_dict(t.load(model_filename))
+            small_models[sparsity].eval()
+        else:
+            raise ImportError
+
 
 #%% Heat maps
 
 def plot_weights_and_bias(W, b):
-    fig = plt.figure(figsize=(5.5, 5))
+    fig = plt.figure(figsize=(3.3, 3))
     grid = ImageGrid(fig, 111,  
                      nrows_ncols=(1, 2),
                      axes_pad=0.2
                      )
     for ax, im in zip(grid, [W.T @ W , b.reshape((len(b), 1))]):
         ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-    grid[0].set_title(f'Weight matrix and bias for sparsity {sparsity}')
+    #grid[0].set_title(f'Weight matrix and bias for sparsity {sparsity}')
     plt.show()
 
-#%% Visualization
+# Visualization
 def superposition_metric(W: t.Tensor) -> list[t.Tensor]:
     """computes the following metrics for representation and superposition for all column vectors
     W: input tensor of shape ( _ , num_features)
@@ -61,17 +57,18 @@ def superposition_metric(W: t.Tensor) -> list[t.Tensor]:
     """
     num_features = W.shape[1]
     matrix = W.T @ W
-    representation = reduce(matrix*matrix, 'i j -> j', 'max') **.5 #t.einsum('ij, ij -> j', matrix, matrix) ** .5
+    representation = reduce(matrix*matrix, 'i j -> i', 'max') **.5 #t.einsum('ij, ij -> j', matrix, matrix) ** .5
     superposition = t.einsum('ij, kl -> ik', matrix, matrix) ** 2
     mask = t.ones((num_features, num_features)) - t.diag_embed(t.ones(num_features))
     superposition = superposition * mask
     superposition = reduce(superposition, 'i j -> j', 'sum')
     return (representation, superposition)
 
-   
         
-def visualize_superposition(W):
-    representation, superposition = superposition_metric(model.weights)
+def visualize_superposition(W: t.Tensor):
+    num_features = W.shape[1]
+    representation, superposition = superposition_metric(W)
+    # print(superposition)
     
     fig, ax = plt.subplots()
     features = range(num_features) 
@@ -88,23 +85,37 @@ def visualize_superposition(W):
 
     plt.show()
 
-model = small_models[0.]
-visualize_superposition(model.weights)
-
-# %%
-fig = plt.figure(figsize=(14.4, 2))
-grid = ImageGrid(fig, 111,  
-                nrows_ncols=(1, 14),
-                axes_pad=0.1
-                )
-plotpairs =[]
-for sparsity in sparsities:
-    W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
-    plotpairs += [W.T @ W, b.reshape((len(b), 1))]
-for ax, im in zip(grid, plotpairs):
-    ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-    ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
-plt.show()
+#%%
+if __name__ == "__main__":
+    fig = plt.figure(figsize=(21.6, 3))
+    grid = ImageGrid(fig, 111,  
+                    nrows_ncols=(1, 14),
+                    axes_pad=0.1
+                    )
+    plotpairs =[]
+    for sparsity in sparsities:
+        W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
+        plotpairs += [W.T @ W, b.reshape((len(b), 1))]
+    for ax, im in zip(grid, plotpairs):
+        ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
+        ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
+    plt.show()
 
 #%%
+# fig = plt.figure(figsize=(14.4, 2))
+# grid = ImageGrid(fig, 111,  
+#                 nrows_ncols=(1, 14),
+#                 axes_pad=0.1
+#                 )
+# plotpairs =[]
+# for sparsity in sparsities:
+#     W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
+#     plotpairs += [W.T @ W, b.reshape((len(b), 1))]
+# for ax, im in zip(grid, plotpairs):
+#     ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
+#     ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
+# plt.show()
 
+
+
+# %%
