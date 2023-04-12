@@ -42,12 +42,20 @@ def plot_weights_and_bias(W, b):
                      axes_pad=0.2
                      )
     for ax, im in zip(grid, [W.T @ W , b.reshape((len(b), 1))]):
+        ax.set_axis_off()
         ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
     #grid[0].set_title(f'Weight matrix and bias for sparsity {sparsity}')
     plt.show()
 
-# Visualization
-def superposition_metric(W: t.Tensor) -> list[t.Tensor]:
+#%%
+if __name__ == '__main__':
+    i = 4 # choose i <= 6
+    model = small_models[sparsities[i]] 
+    plot_weights_and_bias(model.weights.data, model.bias.data)
+    visualize_superposition(model.weights)
+
+#%% Visualization
+def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     """computes the following metrics for representation and superposition for all column vectors
     W: input tensor of shape ( _ , num_features)
         
@@ -55,10 +63,11 @@ def superposition_metric(W: t.Tensor) -> list[t.Tensor]:
     representation: tensor of shape (num_features), the j-th entry is the maximum norms of the column vectors W_j
     superposition: tensor of shape (num_features), the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
     """
-    num_features = W.shape[1]
-    matrix = W.T @ W
-    representation = reduce(matrix*matrix, 'i j -> i', 'max') **.5 #t.einsum('ij, ij -> j', matrix, matrix) ** .5
-    superposition = t.einsum('ij, kl -> ik', matrix, matrix) ** 2
+    assert matrix.shape[0] == matrix.shape[1]
+    num_features = matrix.shape[1]
+    
+    representation = reduce(matrix*matrix, 'i j -> i', 'max') ** .5 #t.einsum('ij, ij -> j', matrix, matrix) ** .5
+    superposition = t.einsum('ij, lj -> il', matrix, matrix) ** 2
     mask = t.ones((num_features, num_features)) - t.diag_embed(t.ones(num_features))
     superposition = superposition * mask
     superposition = reduce(superposition, 'i j -> j', 'sum')
@@ -67,23 +76,28 @@ def superposition_metric(W: t.Tensor) -> list[t.Tensor]:
         
 def visualize_superposition(W: t.Tensor):
     num_features = W.shape[1]
-    representation, superposition = superposition_metric(W)
-    # print(superposition)
+    matrix = W.T @ W
+    representation, superposition = superposition_metric(matrix)
     
     fig, ax = plt.subplots()
     features = range(num_features) 
     bars = representation.detach().numpy()
     color_values = superposition.detach().numpy()
     color_values = color_values / 1.1 #color_values.max()
-    cmap = mlp.colormaps['cividis_r']
+    cmap = mlp.colormaps['cividis']
     bar_colors = [cmap(color) for color in color_values]
     
     ax.invert_yaxis()
     ax.barh(features, bars, color=bar_colors)
     ax.set_ylabel('features')
     ax.set_box_aspect(2)
+    ax.set_axis_off()
 
     plt.show()
+#%% test_visualize_superposition
+# matrix = t.diag_embed(t.ones(5))
+# print(matrix)
+# print(superposition_metric(matrix))
 
 #%%
 if __name__ == "__main__":
@@ -97,6 +111,7 @@ if __name__ == "__main__":
         W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
         plotpairs += [W.T @ W, b.reshape((len(b), 1))]
     for ax, im in zip(grid, plotpairs):
+        ax.set_axis_off()
         ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
         ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
     plt.show()
