@@ -6,6 +6,7 @@ from typing import Union, Optional
 from einops import rearrange, reduce, repeat
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
+from matplotlib.pyplot import matshow
 
 SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
 BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
@@ -34,7 +35,7 @@ class ProjectAndRecover(t.nn.Module):
     def __init__(self, input_features: int, hidden_features: int, importance: t.Tensor):
         super().__init__()
         #self.linear = t.nn.Linear(input_features, hidden_features, bias=False)
-        self.weights = t.nn.Parameter(t.rand((hidden_features, input_features)))
+        self.weights = t.nn.Parameter(t.rand((hidden_features, input_features))*.5)
         self.bias = t.nn.Parameter(t.rand(input_features), requires_grad=True)
         self.relu = t.nn.ReLU()
         assert importance.shape == t.Size([input_features])
@@ -62,10 +63,10 @@ def weighted_MSE(x, x_hat, weights= 1) -> float:
 
 
 #%% Training
-def train(model: ProjectAndRecover, trainloader: DataLoader,input_dim:int, hidden_dim: int, epochs: int = 15) -> ProjectAndRecover:
+def train(model: ProjectAndRecover, trainloader: DataLoader,input_dim:int, hidden_dim: int, epochs: int = 15, lr: float = 0.001) -> ProjectAndRecover:
     """trains model on data provided in trainloader
     """
-    optimizer = t.optim.Adam(model.parameters(),lr=.001)
+    optimizer = t.optim.Adam(model.parameters(),lr=lr)
     for epoch in tqdm(range(epochs)):
         for i, x in enumerate(trainloader):
             x = x.to(device)
@@ -78,13 +79,13 @@ def train(model: ProjectAndRecover, trainloader: DataLoader,input_dim:int, hidde
         print(f"Epoch {epoch}, train loss is {loss}")
     return model
 
-#%% train one model
+#%% train one small model
 if __name__ == "__main__":
     input_dim = 20
     hidden_dim = 5
     sparsity = 0.7
     importance = t.tensor([.7 ** i for i  in range(input_dim)])
-    data = generate_synthetic_data(20, 100000, sparsity)
+    data = generate_synthetic_data(input_dim, 100000, sparsity)
 
     batch_size = 128
     trainloader = DataLoader(tuple((data)), batch_size= batch_size)
@@ -93,6 +94,20 @@ if __name__ == "__main__":
     model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
     model = train(model, trainloader, input_dim, hidden_dim, epochs=20)
 
+#%% train one big model
+if __name__ == "__main__":
+    input_dim = 80
+    hidden_dim = 20
+    sparsity = 0.999
+    importance = t.tensor([.9 ** i for i  in range(input_dim)])
+    data = generate_synthetic_data(input_dim, 100000, sparsity)
+
+    batch_size = 128
+    trainloader = DataLoader(tuple((data)), batch_size= batch_size)
+    device = 'cpu'
+
+    model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
+    model = train(model, trainloader, input_dim, hidden_dim, epochs=25)
 
 #%% Train different sparsities
 if __name__ == "__main__":
@@ -117,20 +132,21 @@ if __name__ == "__main__":
         model_filename = MODELS_PATHNAME + str(sparsity)
         if os.path.exists(model_filename):
             print("Loading model from disk: ", model_filename)
-            models[sparsity] = ProjectAndRecover(input_dim, reduce_to_dim, importance).to(device).train()
+            models[sparsity] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device).train()
             models[sparsity].load_state_dict(t.load(model_filename))
         else:
             print("Training model from scratch")
-            models[sparsity] = ProjectAndRecover(input_dim, reduce_to_dim, importance).to(device).train()
+            models[sparsity] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device).train()
             models[sparsity] = train(models[sparsity], trainloaders[sparsity], input_dim=num_features, hidden_dim=reduce_to_dim, epochs = epochs)
             t.save(models[sparsity].state_dict(), model_filename)
         #plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
 
 
 #%% If necessary, train more
-# if __name__ == "__main__":
-    # sparsity = 0.
-    # models[sparsity] = train(trainloaders[sparsity], input_dim=num_features, hidden_dim=reduce_to_dim, epochs=10, model=models[sparsity])
-    # t.save(models[sparsity], MODELS_PATHNAME + str(sparsity))
-    # 
+if __name__ == "__main__":
+    i=4
+    sparsity = sparsities[i]
+    models[sparsity] = train(models[sparsity], trainloaders[sparsity], input_dim=num_features, hidden_dim=reduce_to_dim, epochs=10, lr=0.0001)
+    t.save(models[sparsity].state_dict(), MODELS_PATHNAME + str(sparsity))
+    
 
