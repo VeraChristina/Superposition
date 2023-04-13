@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.pyplot import matshow
 
-from training import ProjectAndRecover
+from training import ProjectAndRecover, load_saved_models, SPARSITIES
 
 SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
 BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
@@ -16,25 +16,13 @@ device = 'cpu'
 
 #%% load trained models
 if __name__ == "__main__":
-    sparsities = [0., .7, .9, .97, .99, .997, .999]
     small_models = {}
+    load_saved_models(small_models)
 
-    num_features = 20                                                     
-    hidden_dim = 5
-    importance = t.tensor([.7 ** i for i  in range(num_features)])        
-
-    for sparsity in sparsities:
-        model_filename = SMALL_MODELS_PATHNAME + str(sparsity)
-        if os.path.exists(model_filename):
-            small_models[sparsity] = ProjectAndRecover(num_features, hidden_dim, importance).to(device).train()
-            small_models[sparsity].load_state_dict(t.load(model_filename))
-            small_models[sparsity].eval()
-        else:
-            raise ImportError
-
+    big_models = {}
+    load_saved_models(big_models, big = True)
 
 #%% Heat maps
-
 def plot_weights_and_bias(W, b):
     fig = plt.figure(figsize=(3.3, 3))
     grid = ImageGrid(fig, 111,  
@@ -47,12 +35,7 @@ def plot_weights_and_bias(W, b):
     #grid[0].set_title(f'Weight matrix and bias for sparsity {sparsity}')
     plt.show()
 
-#%%
-if __name__ == '__main__':
-    i = 4 # choose i <= 6
-    model = small_models[sparsities[i]] 
-    plot_weights_and_bias(model.weights.data, model.bias.data)
-    visualize_superposition(model.weights)
+
 
 #%% Visualization
 def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
@@ -100,6 +83,12 @@ def visualize_superposition(W: t.Tensor):
 # print(superposition_metric(matrix))
 
 #%%
+if __name__ == '__main__':
+    i = 4                                   # choose i <= 6
+    model = small_models[SPARSITIES[i]] 
+    plot_weights_and_bias(model.weights.data, model.bias.data)
+    visualize_superposition(model.weights)
+#%%
 if __name__ == "__main__":
     fig = plt.figure(figsize=(21.6, 3))
     grid = ImageGrid(fig, 111,  
@@ -107,7 +96,7 @@ if __name__ == "__main__":
                     axes_pad=0.1
                     )
     plotpairs =[]
-    for sparsity in sparsities:
+    for sparsity in SPARSITIES:
         W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
         plotpairs += [W.T @ W, b.reshape((len(b), 1))]
     for ax, im in zip(grid, plotpairs):
@@ -116,21 +105,3 @@ if __name__ == "__main__":
         ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
     plt.show()
 
-#%%
-# fig = plt.figure(figsize=(14.4, 2))
-# grid = ImageGrid(fig, 111,  
-#                 nrows_ncols=(1, 14),
-#                 axes_pad=0.1
-#                 )
-# plotpairs =[]
-# for sparsity in sparsities:
-#     W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
-#     plotpairs += [W.T @ W, b.reshape((len(b), 1))]
-# for ax, im in zip(grid, plotpairs):
-#     ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-#     ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
-# plt.show()
-
-
-
-# %%

@@ -12,11 +12,12 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.pyplot import matshow
 
-from training import generate_synthetic_data, train, ProjectAndRecover
+from training import generate_synthetic_data, train, ProjectAndRecover, load_saved_models
 from visualization import plot_weights_and_bias, visualize_superposition
 
 SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
 BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
+SPARSITIES = [0., .7, .9, .97, .99, .997, .999]
 device = 'cpu'
 
 #%% Train one model
@@ -25,13 +26,13 @@ hidden_dim = 5
 importance = t.tensor([.7 ** i for i  in range(input_dim)])
 
 sparsity = 0.7                                      # or any float in [0,1)
-data = generate_synthetic_data(20, 100000, sparsity)
+data = generate_synthetic_data(input_dim, 100000, sparsity)
 
 batch_size = 128
 trainloader = DataLoader(tuple((data)), batch_size= batch_size)
 
 model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-model = train(model, trainloader, input_dim, hidden_dim, epochs=20)
+model = train(model, trainloader, epochs=20)
 
 #%% and visualize
 W = model.weights.data
@@ -41,45 +42,52 @@ plot_weights_and_bias(W, b)
 #%%
 visualize_superposition(t.tensor(W))
 
+
 #%% load saved models
-sparsities = [0., .7, .9, .97, .99, .997, .999]
-
 small_models = {}
-input_dim = 20                                                     
-hidden_dim = 5
-importance_factor = .7
-importance = t.tensor([importance_factor ** i for i  in range(input_dim)])        
-
-for sparsity in sparsities:
-    model_filename = SMALL_MODELS_PATHNAME + str(sparsity)
-    if os.path.exists(model_filename):
-        small_models[sparsity] = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-        small_models[sparsity].load_state_dict(t.load(model_filename))
-        small_models[sparsity].eval()
-    else:
-        raise ImportError
-
+load_saved_models(small_models)
 
 big_models = {}
-input_dim = 80                                                     
-hidden_dim = 20
-importance_factor = .9
-importance = t.tensor([importance_factor ** i for i  in range(input_dim)])        
-
-for sparsity in sparsities:
-    model_filename = BIG_MODELS_PATHNAME + str(sparsity)
-    if os.path.exists(model_filename):
-        big_models[sparsity] = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-        big_models[sparsity].load_state_dict(t.load(model_filename))
-        big_models[sparsity].eval()
-    else:
-        raise ImportError
-
+load_saved_models(big_models, big = True)
 
 #%% visualize saved models
-i = 2 # choose i <= 6
-model = big_models[sparsities[i]] # or big
+i = 1 # choose i <= 6
+model = small_models[SPARSITIES[i]] 
 plot_weights_and_bias(model.weights.data, model.bias.data)
 visualize_superposition(model.weights)
 
+model = big_models[SPARSITIES[i]] 
+plot_weights_and_bias(model.weights.data, model.bias.data)
+visualize_superposition(model.weights)
+
+# %% visualize all small models
+fig = plt.figure(figsize=(21.6, 3))
+grid = ImageGrid(fig, 111,  
+                nrows_ncols=(1, 14),
+                axes_pad=0.1
+                )
+plotpairs =[]
+for sparsity in SPARSITIES:
+    W,b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
+    plotpairs += [W.T @ W, b.reshape((len(b), 1))]
+for ax, im in zip(grid, plotpairs):
+    ax.set_axis_off()
+    ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
+    ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
+plt.show()
+# %% visualize all large models
+fig = plt.figure(figsize=(21.6, 3))
+grid = ImageGrid(fig, 111,  
+                nrows_ncols=(1, 14),
+                axes_pad=0.1
+                )
+plotpairs =[]
+for sparsity in SPARSITIES:
+    W,b = big_models[sparsity].weights.data, big_models[sparsity].bias.data
+    plotpairs += [W.T @ W, b.reshape((len(b), 1))]
+for ax, im in zip(grid, plotpairs):
+    ax.set_axis_off()
+    ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
+    ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
+plt.show()
 # %%
