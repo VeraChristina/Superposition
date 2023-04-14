@@ -37,8 +37,8 @@ class ProjectAndRecover(t.nn.Module):
     def __init__(self, input_features: int, hidden_features: int, importance: t.Tensor):
         super().__init__()
         #self.linear = t.nn.Linear(input_features, hidden_features, bias=False)
-        self.weights = t.nn.Parameter(t.rand((hidden_features, input_features))*.5)
-        self.bias = t.nn.Parameter(t.rand(input_features), requires_grad=True)
+        self.weights = t.nn.Parameter(t.rand((hidden_features, input_features), requires_grad=True)*.8)
+        self.bias = t.nn.Parameter(t.rand((input_features), requires_grad=True))
         self.relu = t.nn.ReLU()
         assert importance.shape == t.Size([input_features])
         self.importance = importance
@@ -114,8 +114,8 @@ if __name__ == "__main__":
 
 #%% Train different sparsities
 if __name__ == "__main__":
-    pathname = BIG_MODELS_PATHNAME # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME 
-    config = Config_PaR(big= True)        # big = False / big = True
+    pathname = SMALL_MODELS_PATHNAME       # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME 
+    config = Config_PaR(big= False)        # big = False / big = True
     
     num_features = config.input_dim          
     reduce_to_dim = config.hidden_dim        
@@ -125,7 +125,7 @@ if __name__ == "__main__":
        
     size_trainingdata = 100000
     batch_size = 128
-    epochs = 30
+    epochs = 20
 
     datasets = {}
     trainloaders = {}
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 
 #%% If necessary, train more
 if __name__ == "__main__":
-    i=4
+    i=5
     sparsity = sparsities[i]
     models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
     t.save(models[sparsity].state_dict(), pathname + str(sparsity))

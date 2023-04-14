@@ -32,35 +32,39 @@ def plot_weights_and_bias(W, b):
     for ax, im in zip(grid, [W.T @ W , b.reshape((len(b), 1))]):
         ax.set_axis_off()
         ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-    #grid[0].set_title(f'Weight matrix and bias for sparsity {sparsity}')
+    # grid[0].set_title(f'Weight matrix and bias for sparsity {sparsity}')
     plt.show()
 
 
 
 #%% Visualization
-def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
+def superposition_metric(matrix: t.Tensor, new: bool = False) -> list[t.Tensor]:
     """computes the following metrics for representation and superposition for all column vectors
     W: input tensor of shape ( _ , num_features)
+    new: boolean -- indicates which superposition metric to compute
         
     output:
     representation: tensor of shape (num_features), the j-th entry is the maximum norms of the column vectors W_j
-    superposition: tensor of shape (num_features), the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
+    superposition: tensor of shape (num_features), 
+    the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
+    If new = True, the sum is normalized wrt the norm of W_i
     """
-    assert matrix.shape[0] == matrix.shape[1]
     num_features = matrix.shape[1]
+    representation = reduce(matrix*matrix, 'i j -> j', 'sum') ** .5
     
-    representation = reduce(matrix*matrix, 'i j -> i', 'max') ** .5 #t.einsum('ij, ij -> j', matrix, matrix) ** .5
-    superposition = t.einsum('ij, lj -> il', matrix, matrix) ** 2
+    superposition = t.einsum('ij, il -> jl', matrix, matrix) ** 2
+    if new:
+        superposition = superposition / (repeat(representation, 'r -> n r', n=num_features) ** 2 + .0001)
+        
     mask = t.ones((num_features, num_features)) - t.diag_embed(t.ones(num_features))
-    superposition = superposition * mask
+    superposition = superposition * mask 
     superposition = reduce(superposition, 'i j -> j', 'sum')
     return (representation, superposition)
 
         
-def visualize_superposition(W: t.Tensor):
+def visualize_superposition(W: t.Tensor, new: bool = False):
     num_features = W.shape[1]
-    matrix = W.T @ W
-    representation, superposition = superposition_metric(matrix)
+    representation, superposition = superposition_metric(W, new)
     
     fig, ax = plt.subplots()
     features = range(num_features) 
@@ -84,7 +88,7 @@ def visualize_superposition(W: t.Tensor):
 
 #%%
 if __name__ == '__main__':
-    i = 4                                   # choose i <= 6
+    i = 1                                   # choose i <= 6
     model = small_models[SPARSITIES[i]] 
     plot_weights_and_bias(model.weights.data, model.bias.data)
     visualize_superposition(model.weights)
@@ -102,6 +106,5 @@ if __name__ == "__main__":
     for ax, im in zip(grid, plotpairs):
         ax.set_axis_off()
         ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-        ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
+        #ax.set_label(f'W^t W and b for sparsity {sparsity}')
     plt.show()
-

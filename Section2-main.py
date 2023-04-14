@@ -25,14 +25,14 @@ input_dim = 20
 hidden_dim = 5
 importance = t.tensor([.7 ** i for i  in range(input_dim)])
 
-sparsity = 0.7                                      # or any float in [0,1)
+sparsity = 0.99                                     # or any float in [0,1)
 data = generate_synthetic_data(input_dim, 100000, sparsity)
 
 batch_size = 128
 trainloader = DataLoader(tuple((data)), batch_size= batch_size)
 
 model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-model = train(model, trainloader, epochs=20)
+model = train(model, trainloader, epochs=20, lr=.001)
 
 #%% and visualize
 W = model.weights.data
@@ -51,7 +51,7 @@ big_models = {}
 load_saved_models(big_models, big = True)
 
 #%% visualize saved models
-i = 1 # choose i <= 6
+i = 4 # choose i <= 6
 model = small_models[SPARSITIES[i]] 
 plot_weights_and_bias(model.weights.data, model.bias.data)
 visualize_superposition(model.weights)
@@ -73,7 +73,6 @@ for sparsity in SPARSITIES:
 for ax, im in zip(grid, plotpairs):
     ax.set_axis_off()
     ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-    ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
 plt.show()
 # %% visualize all large models
 fig = plt.figure(figsize=(21.6, 3))
