@@ -34,7 +34,13 @@ def generate_synthetic_data(num_features: int, size: int = 100000, sparsity: flo
 
 #%% Model
 class ProjectAndRecover(t.nn.Module):
-    def __init__(self, input_features: int, hidden_features: int, importance: t.Tensor):
+    """Model architechture according to Section 2 of the paper
+    
+    weights: weight matrix of shape (hidden_features, input_features)
+    bias: vector of length input_features
+    importance: vector of length input_features, used as weights in the loss function
+    """
+    def __init__(self, input_features: int, hidden_features: int):
         super().__init__()
         #self.linear = t.nn.Linear(input_features, hidden_features, bias=False)
         self.weights = t.nn.Parameter(t.rand((hidden_features, input_features), requires_grad=True)*.8)
@@ -55,10 +61,13 @@ class ProjectAndRecover(t.nn.Module):
 
 
 class Config_PaR:
+    """Configuration for the ProjectAndRecover model with two predefined configurations
+    The default configuration is that of small models of Section 2 of the paper"""
     input_dim = 20
     hidden_dim = 5
     importance = t.tensor([.7 ** i for i  in range(input_dim)])
     def __init__(self, big: bool = False):
+        """If big = True, initialize configuration of big models of Section 2"""
         if big:
             self.input_dim = 80
             self.hidden_dim = 20
@@ -67,6 +76,7 @@ class Config_PaR:
 
 #%% Loss function
 def weighted_MSE(x, x_hat, weights= 1) -> float:
+    """Compute weighted MSE of x and x^hat wrt weights"""
     assert x.shape == x_hat.shape
     assert x.shape[-1] == weights.shape[-1]
     squared_error = (x - x_hat) ** 2
@@ -76,7 +86,10 @@ def weighted_MSE(x, x_hat, weights= 1) -> float:
 
 #%% Training
 def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, lr: float = 0.001) -> ProjectAndRecover:
-    """trains model on data provided in trainloader
+    """Train model of class ProjectAndRecover on data provided in trainloader
+    
+    epochs: number of epochs to train
+    lr: learning rate
     """
     optimizer = t.optim.Adam(model.parameters(),lr=lr)
     for epoch in tqdm(range(epochs)):
@@ -112,7 +125,7 @@ if __name__ == "__main__":
     model = train(model, trainloader, epochs=epochs)
 
 
-#%% Train different sparsities
+#%% Train different sparsities and store models
 if __name__ == "__main__":
     pathname = SMALL_MODELS_PATHNAME       # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME 
     config = Config_PaR(big= False)        # big = False / big = True
@@ -125,7 +138,7 @@ if __name__ == "__main__":
        
     size_trainingdata = 100000
     batch_size = 128
-    epochs = 20
+    epochs = 25
 
     datasets = {}
     trainloaders = {}
@@ -156,6 +169,9 @@ if __name__ == "__main__":
     
 #%%
 def load_saved_models(models: dict, big: bool = False):
+    """Load the models for Section 2 saved during training
+    models: empty dictionary in which to store the models
+    big: boolean that indicates whether to load the small models or the big models"""
     assert models == {}
     sparsities = SPARSITIES
     

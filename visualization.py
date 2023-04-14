@@ -24,6 +24,7 @@ if __name__ == "__main__":
 
 #%% Heat maps
 def plot_weights_and_bias(W, b):
+    """Plot heat map of W^T@W and b, where W is matrix of shape (m,n) and b vector of length m"""
     fig = plt.figure(figsize=(3.3, 3))
     grid = ImageGrid(fig, 111,  
                      nrows_ncols=(1, 2),
@@ -39,12 +40,13 @@ def plot_weights_and_bias(W, b):
 
 #%% Visualization
 def superposition_metric(matrix: t.Tensor, new: bool = False) -> list[t.Tensor]:
-    """computes the following metrics for representation and superposition for all column vectors
+    """Compute metrics for representation and superposition for all column vectors
+    
     W: input tensor of shape ( _ , num_features)
     new: boolean -- indicates which superposition metric to compute
         
-    output:
-    representation: tensor of shape (num_features), the j-th entry is the maximum norms of the column vectors W_j
+    Return: pair (representation, superposition) where
+    representation: tensor of shape (num_features) whose the j-th entry is the maximum norms of the column vectors W_j
     superposition: tensor of shape (num_features), 
     the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
     If new = True, the sum is normalized wrt the norm of W_i
@@ -63,6 +65,13 @@ def superposition_metric(matrix: t.Tensor, new: bool = False) -> list[t.Tensor]:
 
         
 def visualize_superposition(W: t.Tensor, new: bool = False):
+    """Plot histogram of superposition metric wrt all features
+    W: input matrix of shape (hidden_dim, num_features)
+    new: boolean that indicates which superposition metric to use
+    
+    bar length in histogram corresponds to representation of features,
+    color of bar corresponds to superposition metric of features
+    """    
     num_features = W.shape[1]
     representation, superposition = superposition_metric(W, new)
     
