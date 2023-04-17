@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.pyplot import matshow
 
-from training import generate_synthetic_data, train, ProjectAndRecover, load_saved_models
+from training import generate_synthetic_data, train, ProjectAndRecover, load_models_section2
 from visualization import plot_weights_and_bias, visualize_superposition
 
 SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
@@ -43,14 +43,14 @@ visualize_superposition(t.tensor(W))
 
 #%% load saved models
 small_models = {}
-load_saved_models(small_models)
+load_models_section2(small_models)
 
 big_models = {}
-load_saved_models(big_models, big = True)
+load_models_section2(big_models, big = True)
 
 #%% visualize saved models
-i = 4 # choose i <= 6
-model = small_models[SPARSITIES[i]] 
+i = 5 # choose i <= 6
+model = small_models[SPARSITIES[i]]
 plot_weights_and_bias(model.weights.data, model.bias.data)
 visualize_superposition(model.weights)
 
@@ -72,6 +72,12 @@ for ax, im in zip(grid, plotpairs):
     ax.set_axis_off()
     ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
 plt.show()
+
+fig = plt.figure(figsize=(8, 28))
+for index in range(7):
+    ax = plt.subplot(171 + index)
+    W = small_models[SPARSITIES[index]].weights
+    visualize_superposition(W, ax)
 # %% visualize all large models
 fig = plt.figure(figsize=(21.6, 3))
 grid = ImageGrid(fig, 111,  
@@ -85,6 +91,11 @@ for sparsity in SPARSITIES:
 for ax, im in zip(grid, plotpairs):
     ax.set_axis_off()
     ax.imshow(im, origin="upper", vmin= -1, vmax= 1, cmap=mlp.colormaps['PiYG'])
-    ax.set_label(f'Weight matrix and bias for sparsity {sparsity}')
 plt.show()
+
+fig = plt.figure(figsize=(8, 28))
+for index in range(7):
+    ax = plt.subplot(171 + index)
+    W = big_models[SPARSITIES[index]].weights
+    visualize_superposition(W, ax)
 # %%

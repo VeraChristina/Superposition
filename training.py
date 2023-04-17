@@ -40,11 +40,11 @@ class ProjectAndRecover(t.nn.Module):
     bias: vector of length input_features
     importance: vector of length input_features, used as weights in the loss function
     """
-    def __init__(self, input_features: int, hidden_features: int):
+    def __init__(self, input_features: int, hidden_features: int, importance: t.Tensor):
         super().__init__()
         #self.linear = t.nn.Linear(input_features, hidden_features, bias=False)
         self.weights = t.nn.Parameter(t.rand((hidden_features, input_features), requires_grad=True)*.8)
-        self.bias = t.nn.Parameter(t.rand((input_features), requires_grad=True))
+        self.bias = t.nn.Parameter(t.zeros((input_features), requires_grad=True))
         self.relu = t.nn.ReLU()
         assert importance.shape == t.Size([input_features])
         self.importance = importance
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     importance_factor = .7           # .7 for small models / .9 for big models
     importance = t.tensor([importance_factor ** i for i  in range(input_dim)])
     
-    sparsity = 0.7                   # or any float in [0,1)
+    sparsity = 0.07                   # or any float in [0,1)
     size_trainingdata = 100000
     data = generate_synthetic_data(input_dim, 100000, sparsity)
 
@@ -125,10 +125,10 @@ if __name__ == "__main__":
     model = train(model, trainloader, epochs=epochs)
 
 
-#%% Train different sparsities and store models
+#%% Train different sparsities and store models for Section 2
 if __name__ == "__main__":
-    pathname = SMALL_MODELS_PATHNAME       # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME 
-    config = Config_PaR(big= False)        # big = False / big = True
+    pathname = BIG_MODELS_PATHNAME       # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME 
+    config = Config_PaR(big= True)        # big = False / big = True
     
     num_features = config.input_dim          
     reduce_to_dim = config.hidden_dim        
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     
     sparsities = SPARSITIES
        
-    size_trainingdata = 100000
+    size_trainingdata = 200000
     batch_size = 128
     epochs = 25
 
@@ -161,14 +161,14 @@ if __name__ == "__main__":
 
 
 #%% If necessary, train more
-if __name__ == "__main__":
-    i=5
-    sparsity = sparsities[i]
-    models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
-    t.save(models[sparsity].state_dict(), pathname + str(sparsity))
+# if __name__ == "__main__":
+#     i=5
+#     sparsity = sparsities[i]
+#     models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
+#     t.save(models[sparsity].state_dict(), pathname + str(sparsity))
     
 #%%
-def load_saved_models(models: dict, big: bool = False):
+def load_models_section2(models: dict, big: bool = False):
     """Load the models for Section 2 saved during training
     models: empty dictionary in which to store the models
     big: boolean that indicates whether to load the small models or the big models"""
