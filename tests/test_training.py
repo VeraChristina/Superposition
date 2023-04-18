@@ -1,5 +1,3 @@
-import pytest
-
 import torch as t
 from einops import reduce
 from utils import allclose, assert_all_equal
@@ -19,14 +17,12 @@ def test_generate_synthetic_data():
     sparsity = 0.7
     data = generate_synthetic_data(30, 500000, sparsity)
     
-    with pytest.raises(AssertionError):
-        compare_data_sparsity(data, sparsity)
+    compare_data_sparsity(data, sparsity)
 
 
 def test_weighted_MSE():
     x = t.ones(5)
     x_hat = t.zeros(5)
     weights = t.arange(5)
-    with pytest.raises(AssertionError):
-        assert weighted_MSE(x, x_hat, weights) == t.tensor(10/5)
+    assert weighted_MSE(x, x_hat, weights) == t.tensor(10/5)
     
