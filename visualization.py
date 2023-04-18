@@ -57,7 +57,7 @@ def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     dot_products = t.einsum('ij, il -> jl', matrix, matrix) ** 2
     mask = t.ones((num_features, num_features)) - t.diag_embed(t.ones(num_features))
     superposition = reduce(dot_products * mask, 'i j -> j', 'sum')
-    superposition = superposition / (representation ** 2 + 0.00001)
+    superposition = superposition / (representation ** 2 + 0.000001)
     return (representation, superposition)
 
         
