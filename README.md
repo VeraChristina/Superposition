@@ -1,8 +1,8 @@
 # Superposition -- Paper Replication
-This repo is a replication of the paper 'Toy Models of Superposition', by Nelhage et al. It is work in progress; unfinished sections are on branches. Below you find short summaries of the finished sections.
+This repo is a replication of the paper 'Toy Models of Superposition', by Nelhage et al. https://transformer-circuits.pub/2022/toy_model/index.html
 
-## Installation
-[...]
+It is work in progress; unfinished sections are on branches. Below you find short summaries of the finished sections.
+
 
 ## Section summaries
 
