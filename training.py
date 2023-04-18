@@ -127,8 +127,8 @@ if __name__ == "__main__":
 
 #%% Train different sparsities and store models for Section 2
 if __name__ == "__main__":
-    pathname = BIG_MODELS_PATHNAME       # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME 
-    config = Config_PaR(big= True)        # big = False / big = True
+    pathname = SMALL_MODELS_PATHNAME       # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME 
+    config = Config_PaR(big= False)        # big = False / big = True
     
     num_features = config.input_dim          
     reduce_to_dim = config.hidden_dim        
@@ -160,9 +160,9 @@ if __name__ == "__main__":
         #plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
 
 
-#%% If necessary, train more
+# #%% If necessary, train more
 # if __name__ == "__main__":
-#     i=5
+#     i=6
 #     sparsity = sparsities[i]
 #     models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
 #     t.save(models[sparsity].state_dict(), pathname + str(sparsity))
