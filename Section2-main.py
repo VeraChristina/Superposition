@@ -49,14 +49,14 @@ big_models = {}
 load_models_section2(big_models, big = True)
 
 #%% visualize saved models
-i = 5 # choose i <= 6
+i = 6 # choose i <= 6
 model = small_models[SPARSITIES[i]]
 plot_weights_and_bias(model.weights.data, model.bias.data)
-visualize_superposition(model.weights)
+visualize_superposition(model.weights, sparsity=SPARSITIES[i])
 
 model = big_models[SPARSITIES[i]] 
 plot_weights_and_bias(model.weights.data, model.bias.data)
-visualize_superposition(model.weights)
+visualize_superposition(model.weights, sparsity=SPARSITIES[i])
 
 # %% visualize all small models
 fig = plt.figure(figsize=(21.6, 3))
@@ -77,7 +77,7 @@ fig = plt.figure(figsize=(8, 28))
 for index in range(7):
     ax = plt.subplot(171 + index)
     W = small_models[SPARSITIES[index]].weights
-    visualize_superposition(W, ax)
+    visualize_superposition(W, SPARSITIES[index], ax)
 # %% visualize all large models
 fig = plt.figure(figsize=(21.6, 3))
 grid = ImageGrid(fig, 111,  
@@ -97,5 +97,5 @@ fig = plt.figure(figsize=(8, 28))
 for index in range(7):
     ax = plt.subplot(171 + index)
     W = big_models[SPARSITIES[index]].weights
-    visualize_superposition(W, ax)
+    visualize_superposition(W, SPARSITIES[index], ax)
 # %%
