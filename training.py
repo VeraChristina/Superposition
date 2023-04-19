@@ -160,12 +160,12 @@ if __name__ == "__main__":
         #plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
 
 
-# #%% If necessary, train more
-# if __name__ == "__main__":
-#     i=6
-#     sparsity = sparsities[i]
-#     models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
-#     t.save(models[sparsity].state_dict(), pathname + str(sparsity))
+#%% If necessary, train more
+if __name__ == "__main__":
+    i=4
+    sparsity = sparsities[i]
+    models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
+    t.save(models[sparsity].state_dict(), pathname + str(sparsity))
     
 #%%
 def load_models_section2(models: dict, big: bool = False):
