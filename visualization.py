@@ -6,7 +6,6 @@ from einops import rearrange, reduce, repeat
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
-from matplotlib.pyplot import matshow
 
 from training import ProjectAndRecover, load_models_section2, SPARSITIES
 

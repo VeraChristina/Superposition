@@ -2,11 +2,9 @@
 import torch as t
 import os
 
-from typing import Union, Optional
 from einops import rearrange, reduce, repeat
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from matplotlib.pyplot import matshow
 
 SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
 BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
@@ -62,16 +60,20 @@ class ProjectAndRecover(t.nn.Module):
 
 class Config_PaR:
     """Configuration for the ProjectAndRecover model with two predefined configurations
-    The default configuration is that of small models of Section 2 of the paper"""
-    input_dim = 20
-    hidden_dim = 5
-    importance = t.tensor([.7 ** i for i  in range(input_dim)])
-    def __init__(self, big: bool = False):
-        """If big = True, initialize configuration of big models of Section 2"""
+    The default configuration is that of small models of Section 2 of the paper
+    If big = True, the configuration of big models of Section 2 is initialized"""
+
+    def __init__(self, big: bool = False, input_dim = 20, hidden_dim = 5, importance = t.tensor([.7 ** i for i  in range(20)])):
+        """If big = True, initialize configuration of big models of Section 2, else the default or custom configuration"""
         if big:
             self.input_dim = 80
             self.hidden_dim = 20
             self.importance = t.tensor([.9 ** i for i  in range(self.input_dim)])
+        else:
+            self.input_dim = input_dim
+            self.hidden_dim = hidden_dim
+            assert importance.shape == (input_dim)
+            self.importance = importance          
 
 
 #%% Loss function
@@ -85,14 +87,14 @@ def weighted_MSE(x, x_hat, weights= 1) -> float:
 
 
 #%% Training
-def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, lr: float = 0.001) -> ProjectAndRecover:
-    """Train model of class ProjectAndRecover on data provided in trainloader
+def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, lr: float = 0.001, no_printing = False) -> float:
+    """Train model of class ProjectAndRecover on data provided in trainloader, return loss after training
     
     epochs: number of epochs to train
     lr: learning rate
     """
     optimizer = t.optim.Adam(model.parameters(),lr=lr)
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(epochs), disable=no_printing):
         for i, x in enumerate(trainloader):
             x = x.to(device)
             # y = y.to(device)
@@ -101,8 +103,9 @@ def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, l
             loss = weighted_MSE(x, x_hat, model.importance)
             loss.backward()
             optimizer.step()
-        print(f"Epoch {epoch}, train loss is {loss}")
-    return model
+        if no_printing is False:
+            print(f"Epoch {epoch}, train loss is {loss}")
+    return loss
 
 #%% train one model
 if __name__ == "__main__":
@@ -122,8 +125,7 @@ if __name__ == "__main__":
     device = 'cpu'
 
     model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-    model = train(model, trainloader, epochs=epochs)
-
+    loss = train(model, trainloader, epochs=epochs)
 
 #%% Train different sparsities and store models for Section 2
 if __name__ == "__main__":
@@ -155,7 +157,7 @@ if __name__ == "__main__":
         else:
             print("Training model from scratch")
             models[sparsity] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device).train()
-            models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs = epochs)
+            loss = train(models[sparsity], trainloaders[sparsity], epochs = epochs)
             t.save(models[sparsity].state_dict(), model_filename)
         #plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
 
@@ -164,7 +166,7 @@ if __name__ == "__main__":
 if __name__ == "__main__":
     i=4
     sparsity = sparsities[i]
-    models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
+    loss = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
     t.save(models[sparsity].state_dict(), pathname + str(sparsity))
     
 #%%
