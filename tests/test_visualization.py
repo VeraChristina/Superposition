@@ -1,5 +1,3 @@
-import pytest
-
 import torch as t
 from utils import assert_all_equal, allclose
 from visualization import superposition_metric

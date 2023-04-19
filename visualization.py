@@ -14,13 +14,6 @@ SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
 BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
 device = 'cpu'
 
-#%% load trained models
-if __name__ == "__main__":
-    small_models = {}
-    load_models_section2(small_models)
-
-    big_models = {}
-    load_models_section2(big_models, big = True)
 
 #%% Heat maps
 def plot_weights_and_bias(W, b):
@@ -90,14 +83,18 @@ def visualize_superposition(W: t.Tensor, sparsity: float, ax = None):
     
     if ax == None:
         plt.show()
-#%% test_visualize_superposition
-# matrix = t.diag_embed(t.ones(5))
-# print(matrix)
-# print(superposition_metric(matrix))
 
+#%% load trained models
+if __name__ == "__main__":
+    small_models = {}
+    load_models_section2(small_models)
+
+    big_models = {}
+    load_models_section2(big_models, big = True)
+    
 #%%
 if __name__ == '__main__':
-    i = 1                                   # choose i <= 6
+    i = 4                                   # choose i <= 6
     model = small_models[SPARSITIES[i]] 
     plot_weights_and_bias(model.weights.data, model.bias.data)
     visualize_superposition(model.weights, SPARSITIES[i])
