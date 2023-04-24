@@ -45,15 +45,15 @@ class ProjectAndRecover(t.nn.Module):
             weights_shape = (hidden_features, input_features)
             bias_shape = (input_features)
             self.multiple = False
+            assert importance.shape == t.Size([input_features])
         else:
             weights_shape = (multiple, hidden_features, input_features)
             bias_shape = (multiple, input_features)
             self.multiple = True
+            assert importance.shape == t.Size([multiple, input_features])
         self.weights = t.nn.Parameter(t.rand(weights_shape, requires_grad=True) -.5)
         self.bias = t.nn.Parameter(t.zeros(bias_shape, requires_grad=True))
         self.relu = t.nn.ReLU()
-        
-        assert importance.shape == t.Size([input_features])
         self.importance = importance
 
     def forward(self, x: t.Tensor) -> t.Tensor:
@@ -104,6 +104,8 @@ def weighted_MSE(x, x_hat, weights: t.Tensor, multiple:bool = False) -> t.Tensor
     assert x.shape == x_hat.shape[-2:]
     assert x.shape[-1] == weights.shape[-1]
     squared_error = (x - x_hat) ** 2
+    if multiple == True:
+        squared_error = rearrange(squared_error, 'm b i -> b m i')
     weighted_squared_error = weights * squared_error
     if multiple == False:
         return weighted_squared_error.mean()
@@ -112,7 +114,7 @@ def weighted_MSE(x, x_hat, weights: t.Tensor, multiple:bool = False) -> t.Tensor
 
 #%% Training
 def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, lr: float = 0.001, no_printing = False) -> float:
-    """Train model of class ProjectAndRecover on data provided in trainloader, return loss after training
+    """Train given model of class ProjectAndRecover on data provided in trainloader, return loss after training
     
     epochs: number of epochs to train
     lr: learning rate

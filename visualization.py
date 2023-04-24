@@ -43,7 +43,7 @@ def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
     If new = True, the sum is normalized wrt the norm of W_j
     """
-    num_features = matrix.shape[1]
+    num_features = matrix.shape[-1]
     representation = reduce(matrix*matrix, 'i j -> j', 'sum') ** .5
     
     dot_products = t.einsum('ij, il -> jl', matrix, matrix) ** 2
@@ -52,7 +52,27 @@ def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     superposition = superposition / (representation ** 2 + 0.000001)
     return (representation, superposition)
 
+
+def vectorized_superposition_metric(matrices: t.Tensor) -> list[t.Tensor]:
+    """Compute representation and superposition given a tensor of matrices, where the last two dimension corresponds to the matrix W_ij with indices ij
+    
+    W: input tensor of shape (..., _ , num_features)
         
+    Return: pair (representation, superposition) where
+    representation: tensor of shape (..., num_features) whose the j-th entry is the maximum norms of the column vectors W_j
+    superposition: tensor of shape (..., num_features), 
+    the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
+    If new = True, the sum is normalized wrt the norm of W_j
+    """
+    num_features = matrices.shape[-1]
+    representation = reduce(matrices*matrices, '... i j -> ... j', 'sum') ** .5
+    
+    dot_products = t.einsum('... ij, ... il -> ... jl', matrices, matrices) ** 2
+    mask = t.ones((num_features, num_features)) - t.diag_embed(t.ones(num_features))
+    superposition = reduce(dot_products * mask, '... i j -> ... j', 'sum')
+    superposition = superposition / (representation ** 2 + 0.000001)
+    return (representation, superposition)
+
 def visualize_superposition(W: t.Tensor, sparsity: float, ax = None):
     """Plot histogram of superposition metric wrt all features
     W: input matrix of shape (hidden_dim, num_features)
