@@ -2,11 +2,10 @@
 import torch as t
 import os
 
-from typing import Union, Optional
 from einops import rearrange, reduce, repeat
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from matplotlib.pyplot import matshow
+from typing import Optional, Union
 
 SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
 BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
@@ -34,75 +33,113 @@ def generate_synthetic_data(num_features: int, size: int = 100000, sparsity: flo
 
 #%% Model
 class ProjectAndRecover(t.nn.Module):
-    """Model architechture according to Section 2 of the paper
+    """Model architechture according to Section 2 of the paper with option for multiple models
     
     weights: weight matrix of shape (hidden_features, input_features)
     bias: vector of length input_features
     importance: vector of length input_features, used as weights in the loss function
     """
-    def __init__(self, input_features: int, hidden_features: int, importance: t.Tensor):
+    def __init__(self, input_features: int, hidden_features: int, importance: t.Tensor, multiple: Optional[int]=None):
+        """Initialize bias to zero,
+        Initialize weights uniformly random in [0,0.8] if multiple == None, uniformly random in [-.5,-.5] otherwise (for Section 3)
+        """
         super().__init__()
-        #self.linear = t.nn.Linear(input_features, hidden_features, bias=False)
-        self.weights = t.nn.Parameter(t.rand((hidden_features, input_features), requires_grad=True)*.8)
-        self.bias = t.nn.Parameter(t.zeros((input_features), requires_grad=True))
+        if multiple is None:
+            weights_shape = (hidden_features, input_features)
+            bias_shape = (input_features)
+            self.multiple = False
+            assert importance.shape == t.Size([input_features])
+            self.weights = t.nn.Parameter(t.rand(weights_shape, requires_grad=True) *.8)
+        else:
+            weights_shape = (multiple, hidden_features, input_features)
+            bias_shape = (multiple, input_features)
+            self.multiple = True
+            assert importance.shape == t.Size([multiple, input_features])
+            self.weights = t.nn.Parameter(t.rand(weights_shape, requires_grad=True) -.5)
+        self.bias = t.nn.Parameter(t.zeros(bias_shape, requires_grad=True))
         self.relu = t.nn.ReLU()
-        assert importance.shape == t.Size([input_features])
         self.importance = importance
 
     def forward(self, x: t.Tensor) -> t.Tensor:
         """ Reduce via linear transformation, recover via its transpose, add bias and apply ReLU
 
         x: shape (batch, input_features)
-        Return: shape (batch, input_features)
+        Return: shape (batch, input_features) if multiple == False, shape (batch, 10, input_features) otherwise
         """
-        x = t.einsum('h i, b i -> b h', self.weights, x)
-        x = t.einsum('h i, b h -> b i', self.weights, x) + self.bias
+        if self.multiple is False:
+            x = t.einsum('h i, b i -> b h', self.weights, x)
+            x = t.einsum('h i,  b h -> b i', self.weights, x) + self.bias
+        else:
+            x = t.einsum('m h i, b i -> b m h', self.weights, x)
+            x = t.einsum('m h i,  b m h -> b m i', self.weights, x) + self.bias
         return self.relu(x)
 
 
 class Config_PaR:
     """Configuration for the ProjectAndRecover model with two predefined configurations
-    The default configuration is that of small models of Section 2 of the paper"""
-    input_dim = 20
-    hidden_dim = 5
-    importance = t.tensor([.7 ** i for i  in range(input_dim)])
-    def __init__(self, big: bool = False):
-        """If big = True, initialize configuration of big models of Section 2"""
+    The default configuration is that of small models of Section 2 of the paper
+    If big = True, the configuration of big models of Section 2 is initialized"""
+
+    def __init__(self, big: bool = False, input_dim = 20, hidden_dim = 5, importance = t.tensor([.7 ** i for i  in range(20)]), multiple: Optional[int] = None):
+        """If big = True, initialize configuration of big models of Section 2, else the default or custom configuration"""
         if big:
             self.input_dim = 80
             self.hidden_dim = 20
             self.importance = t.tensor([.9 ** i for i  in range(self.input_dim)])
+            self.multiple = None
+        else:
+            self.input_dim = input_dim
+            self.hidden_dim = hidden_dim
+            assert importance.shape == (input_dim)
+            self.importance = importance
+            self.multiple = multiple
 
 
 #%% Loss function
-def weighted_MSE(x, x_hat, weights= 1) -> float:
-    """Compute weighted MSE of x and x^hat wrt weights"""
-    assert x.shape == x_hat.shape
+def weighted_MSE(x, x_hat, weights: t.Tensor, multiple:bool = False) -> t.Tensor:
+    """Compute weighted MSE of x and x^hat wrt weights, with option for multiple models
+    x shape: (batch, input_dim)
+    x_hat shape: (batch, input_dim) if multiple = False, otherwise shape (batch, num_models, input_dim)
+    
+    return tensor of shape: (num_models) if multiple is true, and (1) else
+    """
+    if multiple == True:
+        x_hat = rearrange(x_hat, 'b m i -> m b i')
+    assert x.shape == x_hat.shape[-2:]
     assert x.shape[-1] == weights.shape[-1]
     squared_error = (x - x_hat) ** 2
+    if multiple == True:
+        squared_error = rearrange(squared_error, 'm b i -> b m i')
     weighted_squared_error = weights * squared_error
-    return weighted_squared_error.mean()
+    if multiple == False:
+        return weighted_squared_error.mean()
+    return reduce(weighted_squared_error, 'b m i -> m', 'mean')
 
 
 #%% Training
-def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, lr: float = 0.001) -> ProjectAndRecover:
-    """Train model of class ProjectAndRecover on data provided in trainloader
+def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, lr: float = 0.001, no_printing = False) -> float:
+    """Train given model of class ProjectAndRecover on data provided in trainloader, return loss after training
     
     epochs: number of epochs to train
     lr: learning rate
     """
     optimizer = t.optim.Adam(model.parameters(),lr=lr)
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(epochs), disable=no_printing):
+        epoch_losses = 0
+        epoch_loss = 0
         for i, x in enumerate(trainloader):
             x = x.to(device)
-            # y = y.to(device)
             optimizer.zero_grad()
             x_hat = model(x)
-            loss = weighted_MSE(x, x_hat, model.importance)
+            losses = weighted_MSE(x, x_hat, model.importance, model.multiple)
+            loss = losses.sum()
             loss.backward()
             optimizer.step()
-        print(f"Epoch {epoch}, train loss is {loss}")
-    return model
+            epoch_losses += losses.detach()
+            epoch_loss += loss.detach()
+        if no_printing is False:
+            print(f"Epoch {epoch}, train loss is {epoch_loss}")
+    return epoch_losses
 
 #%% train one model
 if __name__ == "__main__":
@@ -122,8 +159,7 @@ if __name__ == "__main__":
     device = 'cpu'
 
     model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-    model = train(model, trainloader, epochs=epochs)
-
+    loss = train(model, trainloader, epochs=epochs)
 
 #%% Train different sparsities and store models for Section 2
 if __name__ == "__main__":
@@ -155,16 +191,15 @@ if __name__ == "__main__":
         else:
             print("Training model from scratch")
             models[sparsity] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device).train()
-            models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs = epochs)
+            loss = train(models[sparsity], trainloaders[sparsity], epochs = epochs)
             t.save(models[sparsity].state_dict(), model_filename)
-        #plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
 
 
 #%% If necessary, train more
 if __name__ == "__main__":
     i=4
     sparsity = sparsities[i]
-    models[sparsity] = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
+    loss = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
     t.save(models[sparsity].state_dict(), pathname + str(sparsity))
     
 #%%

@@ -6,7 +6,6 @@ from einops import rearrange, reduce, repeat
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
-from matplotlib.pyplot import matshow
 
 from training import ProjectAndRecover, load_models_section2, SPARSITIES
 
@@ -44,7 +43,7 @@ def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
     If new = True, the sum is normalized wrt the norm of W_j
     """
-    num_features = matrix.shape[1]
+    num_features = matrix.shape[-1]
     representation = reduce(matrix*matrix, 'i j -> j', 'sum') ** .5
     
     dot_products = t.einsum('ij, il -> jl', matrix, matrix) ** 2
@@ -53,7 +52,27 @@ def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     superposition = superposition / (representation ** 2 + 0.000001)
     return (representation, superposition)
 
+
+def vectorized_superposition_metric(matrices: t.Tensor) -> list[t.Tensor]:
+    """Compute representation and superposition given a tensor of matrices, where the last two dimension corresponds to the matrix W_ij with indices ij
+    
+    W: input tensor of shape (..., _ , num_features)
         
+    Return: pair (representation, superposition) where
+    representation: tensor of shape (..., num_features) whose the j-th entry is the maximum norms of the column vectors W_j
+    superposition: tensor of shape (..., num_features), 
+    the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i 
+    If new = True, the sum is normalized wrt the norm of W_j
+    """
+    num_features = matrices.shape[-1]
+    representation = reduce(matrices*matrices, '... i j -> ... j', 'sum') ** .5
+    
+    dot_products = t.einsum('... ij, ... il -> ... jl', matrices, matrices) ** 2
+    mask = t.ones((num_features, num_features)) - t.diag_embed(t.ones(num_features))
+    superposition = reduce(dot_products * mask, '... i j -> ... j', 'sum')
+    superposition = superposition / (representation ** 2 + 0.000001)
+    return (representation, superposition)
+
 def visualize_superposition(W: t.Tensor, sparsity: float, ax = None):
     """Plot histogram of superposition metric wrt all features
     W: input matrix of shape (hidden_dim, num_features)
@@ -120,4 +139,25 @@ if __name__ == "__main__":
         ax = plt.subplot(171 + index)
         W = small_models[SPARSITIES[index]].weights
         visualize_superposition(W, SPARSITIES[index], ax)
-# %%
+        
+# %% 2D colors for Section 3
+def get_color_2d(x: t.Tensor, y:t.Tensor):
+    assert x.shape == y.shape
+    shape = y.shape
+    transparency_factors = t.concat([repeat(t.ones(shape),'... -> ... r', r =3) , rearrange(y, '... -> ... 1')], dim=-1)
+    cmap = mlp.colormaps['cool']
+    colors = cmap(x.detach().numpy())
+    colors = colors * transparency_factors.detach().numpy()
+    return colors
+
+#%% print '2d colormap'
+if __name__ == '__main__':
+    matrix=t.zeros((100,100))
+    colors = repeat(t.linspace(0,1, 100), 't -> r t', r = 100)
+    transparencies = repeat(t.linspace(1,0,100), 't -> t r', r = 100)
+    matrix = get_color_2d(colors, transparencies)
+
+    fig1, ax = plt.subplots()
+    ax.set_axis_off()
+    ax.imshow(matrix)
+    plt.show()

@@ -32,13 +32,13 @@ batch_size = 128
 trainloader = DataLoader(tuple((data)), batch_size= batch_size)
 
 model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-model = train(model, trainloader, epochs=20, lr=.001)
+loss = train(model, trainloader, epochs=20, lr=.001)
 
 #%% and visualize
 W = model.weights.data
 b = model.bias.data
 plot_weights_and_bias(W, b)
-visualize_superposition(t.tensor(W))
+visualize_superposition(t.tensor(W), sparsity)
 
 
 #%% load saved models
