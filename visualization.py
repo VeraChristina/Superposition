@@ -139,4 +139,13 @@ if __name__ == "__main__":
         ax = plt.subplot(171 + index)
         W = small_models[SPARSITIES[index]].weights
         visualize_superposition(W, SPARSITIES[index], ax)
-# %%
+        
+# %% 2D colors for Section 3
+def get_color_2d(x: t.Tensor, y:t.Tensor):
+    assert x.shape == y.shape
+    shape = y.shape
+    transparency_factors = t.concat([repeat(t.ones(shape),'... -> ... r', r =3) , rearrange(y, '... -> ... 1')], dim=-1)
+    cmap = mlp.colormaps['cool']
+    colors = cmap(x.detach().numpy())
+    colors = colors * transparency_factors.detach().numpy()
+    return colors

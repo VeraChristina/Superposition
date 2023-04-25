@@ -38,7 +38,7 @@ loss = train(model, trainloader, epochs=20, lr=.001)
 W = model.weights.data
 b = model.bias.data
 plot_weights_and_bias(W, b)
-visualize_superposition(t.tensor(W))
+visualize_superposition(t.tensor(W), sparsity)
 
 
 #%% load saved models

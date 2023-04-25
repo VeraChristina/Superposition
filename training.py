@@ -40,18 +40,22 @@ class ProjectAndRecover(t.nn.Module):
     importance: vector of length input_features, used as weights in the loss function
     """
     def __init__(self, input_features: int, hidden_features: int, importance: t.Tensor, multiple: Optional[int]=None):
+        """Initialize bias to zero,
+        Initialize weights uniformly random in [0,0.8] if multiple == None, uniformly random in [-.5,-.5] otherwise (for Section 3)
+        """
         super().__init__()
         if multiple is None:
             weights_shape = (hidden_features, input_features)
             bias_shape = (input_features)
             self.multiple = False
             assert importance.shape == t.Size([input_features])
+            self.weights = t.nn.Parameter(t.rand(weights_shape, requires_grad=True) *.8)
         else:
             weights_shape = (multiple, hidden_features, input_features)
             bias_shape = (multiple, input_features)
             self.multiple = True
             assert importance.shape == t.Size([multiple, input_features])
-        self.weights = t.nn.Parameter(t.rand(weights_shape, requires_grad=True) -.5)
+            self.weights = t.nn.Parameter(t.rand(weights_shape, requires_grad=True) -.5)
         self.bias = t.nn.Parameter(t.zeros(bias_shape, requires_grad=True))
         self.relu = t.nn.ReLU()
         self.importance = importance
@@ -121,6 +125,8 @@ def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, l
     """
     optimizer = t.optim.Adam(model.parameters(),lr=lr)
     for epoch in tqdm(range(epochs), disable=no_printing):
+        epoch_losses = 0
+        epoch_loss = 0
         for i, x in enumerate(trainloader):
             x = x.to(device)
             optimizer.zero_grad()
@@ -129,9 +135,11 @@ def train(model: ProjectAndRecover, trainloader: DataLoader, epochs: int = 15, l
             loss = losses.sum()
             loss.backward()
             optimizer.step()
+            epoch_losses += losses.detach()
+            epoch_loss += loss.detach()
         if no_printing is False:
-            print(f"Epoch {epoch}, train loss is {loss}")
-    return losses
+            print(f"Epoch {epoch}, train loss is {epoch_loss}")
+    return epoch_losses
 
 #%% train one model
 if __name__ == "__main__":
@@ -185,7 +193,6 @@ if __name__ == "__main__":
             models[sparsity] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device).train()
             loss = train(models[sparsity], trainloaders[sparsity], epochs = epochs)
             t.save(models[sparsity].state_dict(), model_filename)
-        #plot_weights_and_bias(models[sparsity].weights.data, models[sparsity].bias.data)
 
 
 #%% If necessary, train more
