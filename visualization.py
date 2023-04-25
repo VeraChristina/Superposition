@@ -149,3 +149,15 @@ def get_color_2d(x: t.Tensor, y:t.Tensor):
     colors = cmap(x.detach().numpy())
     colors = colors * transparency_factors.detach().numpy()
     return colors
+
+#%% print '2d colormap'
+if __name__ == '__main__':
+    matrix=t.zeros((100,100))
+    colors = repeat(t.linspace(0,1, 100), 't -> r t', r = 100)
+    transparencies = repeat(t.linspace(1,0,100), 't -> t r', r = 100)
+    matrix = get_color_2d(colors, transparencies)
+
+    fig1, ax = plt.subplots()
+    ax.set_axis_off()
+    ax.imshow(matrix)
+    plt.show()

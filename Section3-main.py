@@ -19,7 +19,7 @@ device = 'cpu'
 
 
 #%%
-NUM_GRIDPOINTS = 20
+NUM_GRIDPOINTS = 40
 SPARSITIES = 1 - t.logspace(0, -2, NUM_GRIDPOINTS)  # sparsities between 0 and .99 corresponding to densities on log scale from 1 to .01 (log(1) = 0, log(.01) = -2)
 IMPORTANCES = t.logspace(-1, 1, NUM_GRIDPOINTS)   # relative importances between .1 and 10 on log scale (log(-1) = .1, log(1)= 10)
 
@@ -32,7 +32,7 @@ if __name__ == '__main__':
         trainloaders[ind]= DataLoader(data[ind], batch_size=128)
 
 #%%
-def train_multiple(input_dim, hidden_dim, rel_importances: t.tensor, sparsity_ind: int,  no_printing: bool = True) -> list:
+def train_multiple(input_dim, hidden_dim, rel_importances: t.tensor, sparsity_ind,  no_printing: bool = False) -> list:
     num_importances = rel_importances.shape[0]
     num_models = num_importances * 10
     importance_matrix = t.ones((num_models,input_dim))
@@ -47,7 +47,6 @@ def evaluate_multiple(models: ProjectAndRecover, losses: t.Tensor, best: bool = 
     weights = rearrange(models.weights, '(r i) h f -> r i h f', r = 10)
     losses = rearrange(losses, '(r i) -> r i', r = 10)
     num_importances = losses.shape[1]
-    print(weights,losses)
     
     representations, superpositions = vectorized_superposition_metric(weights)
     if best == True:
@@ -70,17 +69,17 @@ def evaluate_multiple(models: ProjectAndRecover, losses: t.Tensor, best: bool = 
     return representation, superposition
 
 
-#%% single training run for debugging
-if __name__ == '__main__':
-    input_dim = 2
-    hidden_dim = 1
-    importances = t.tensor([1])
-    sparsity_index = 10
+# #%% single training run for debugging
+# if __name__ == '__main__':
+#     input_dim = 2
+#     hidden_dim = 1
+#     importances = t.tensor([1])
+#     sparsity_index = 9
 
-    models, losses = train_multiple(input_dim, hidden_dim, importances, sparsity_index)
+#     models, losses = train_multiple(input_dim, hidden_dim, importances, sparsity_index)
 
-    representation, superposition = evaluate_multiple(models, losses, best=False)
-    print(representation, superposition)
+#     representation, superposition = evaluate_multiple(models, losses, best=False)
+#     print(representation, superposition)
 
 #%% Training run for grid
 if __name__ == '__main__':
@@ -89,8 +88,6 @@ if __name__ == '__main__':
     input_dim = 2
     hidden_dim = 1
 
-    representation_list = []
-    superposition_list = []
     for sparsity_ind in tqdm(range(NUM_GRIDPOINTS)):
         models_section3[sparsity_ind], losses[sparsity_ind] = train_multiple(input_dim, 
                                                                              hidden_dim,
@@ -101,42 +98,35 @@ if __name__ == '__main__':
 
 #%% Visualization for grid
 if __name__ == '__main__':
-    for sparsity_ind in tqdm(range(NUM_GRIDPOINTS)):
-        representation, superposition = evaluate_multiple(models_section3[sparsity_ind], losses[sparsity_ind], best=True)
+    representation_list = []
+    superposition_list = []
+    representation_best_list = []
+    superposition_best_list = []
+    
+    for sparsity_ind in range(NUM_GRIDPOINTS):
+        representation, superposition = evaluate_multiple(models_section3[sparsity_ind], losses[sparsity_ind], best=False)
         representation_list.append(representation)
         superposition_list.append(superposition)
+        representation, superposition = evaluate_multiple(models_section3[sparsity_ind], losses[sparsity_ind], best=True)
+        representation_best_list.append(representation)
+        superposition_best_list.append(superposition)       
 
     superposition = t.stack(superposition_list, dim=0)
     representation = t.stack(representation_list, dim =0)
+    superposition_best = t.stack(superposition_best_list, dim=0)
+    representation_best = t.stack(representation_best_list, dim =0)
+    
 
     colors = get_color_2d(superposition[:,:,1], representation[:,:,1])
-    fig, ax = plt.subplots()
-    ax.set_axis_off()
-    ax.imshow(colors)
-    plt.show()
-#%%
-if __name__ == '__main__':
-    print(representation[18,:,:])
-    print(superposition[18, :,:])
-
-# #%%
-# if __name__ == '__main__':
-#     t.save(superposition, MODELS_PATHNAME + 'superposition_best')
-#     t.save(representation, MODELS_PATHNAME + 'representation_best')
-#%% print '2d colormap'
-if __name__ == '__main__':
-    matrix=t.zeros((100,100))
-    colors = repeat(t.linspace(0,1, 100), 't -> r t', r = 100)
-    transparencies = repeat(t.linspace(1,0,100), 't -> t r', r = 100)
-    matrix = get_color_2d(colors, transparencies)
-
-    fig1, ax = plt.subplots()
-    ax.set_axis_off()
-    ax.imshow(matrix)
+    colors_best = get_color_2d(superposition_best[:,:,1], representation_best[:,:,1])
+    fig, ax = plt.subplots(1,2)
+    ax[0].set_axis_off()
+    ax[0].imshow(colors)
+    ax[1].set_axis_off()
+    ax[1].imshow(colors_best)
     plt.show()
 
-
-# %%
+# %% Loss Map to check for local minima
 loss_map = t.zeros((100,100))
 
 def get_loss(w_1: t.Tensor, w_2: t.Tensor) -> t.Tensor:
@@ -149,6 +139,7 @@ def get_loss(w_1: t.Tensor, w_2: t.Tensor) -> t.Tensor:
 for i in range(100):
     for j in range(100):
         loss_map[i][j] = get_loss(t.tensor((i-50)/48), t.tensor((j-50)/48))
+
 #%%
 cut_off = t.clamp(loss_map, 0.0, .017)
 
@@ -158,5 +149,3 @@ ax.set_ylabel(r'$-1 <=w_1 <=1$')
 ax.set_xlabel(r'$-1<=w_2<=1$')
 ax.set_title(r'clipped loss for $W=[w_1, w_2]$ with rel_importance=1.4, sparsity_ind =10')
 plt.show()
-    
-# %%
