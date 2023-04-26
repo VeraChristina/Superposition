@@ -158,6 +158,14 @@ if __name__ == '__main__':
     matrix = get_color_2d(colors, transparencies)
 
     fig1, ax = plt.subplots()
-    ax.set_axis_off()
+    fig1.set_size_inches(2,2)
+    ax.set_xticks([0, 99])
+    ax.set_xticklabels([0, r'$\geq 1$'])
+    ax.set_xlabel('superposition')
+    ax.set_yticks([0, 99])
+    ax.set_yticklabels([ r'$\geq1$', 0])
+    ax.set_ylabel('representation')
     ax.imshow(matrix)
     plt.show()
+
+# %%
