@@ -12,6 +12,6 @@ My results corresponding to Section 2 of the paper are presented in the notebook
 The code for training and visualization can be found in the respective files.
 
 ### Section 3 -- Superposition as Phase Change
-An exposition of the results is to be added to the notebook demo-superposition.ipynb. We also observe a phase change as described in the paper: The optimal weight configuration (in particular superposition versus no superposition) changes discontinuously with varying sparsity and relative importance. In difference to the paper, our training process (depending on initialization) sometimes runs into local minima. The phase diagrams that average over results of multiple models are therefore more colorful; if we pick the model with minimal loss instead we see the phase change clearly.
+A brief exposition of the results for this section is included in the notebook demo-superposition.ipynb. We observe a phase change as described in the paper: The optimal weight configuration (superposition versus no superposition) changes discontinuously with varying sparsity and relative importance. In difference to the paper, our training process (depending on initialization) sometimes runs into local minima. The phase diagrams that average over results of multiple models are therefore more noisy; if we pick the model with minimal loss instead, we see the phase change clearly. 
 
-The state of the art can be found in the code file Section3-main.py and (non-labelled) figures in the respective folder.
+A more thorough analysis of the training process might be added later. The state of the art can be found in the code file Section3-main.py and more figures in the respective folder.
