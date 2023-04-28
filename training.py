@@ -41,6 +41,7 @@ class ProjectAndRecover(t.nn.Module):
     weights: weight matrix of shape (hidden_features, input_features)
     bias: vector of length input_features
     importance: vector of length input_features, used as weights in the loss function
+    multiple: None, in default case of one model, or integer number of models
     """
 
     def __init__(
@@ -164,6 +165,7 @@ def train(
             x_hat = model(x)
             losses = weighted_MSE(x, x_hat, model.importance, model.multiple)
             loss = losses.sum()
+            # can train multiple models within one model because the sum of the gradients wrt losses gives the gradients wrt loss
             loss.backward()
             optimizer.step()
             epoch_losses += losses.detach()
