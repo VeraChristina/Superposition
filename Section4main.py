@@ -11,10 +11,36 @@ import matplotlib as mlp
 import matplotlib.pyplot as plt
 
 from training import generate_synthetic_data, train, ProjectAndRecover
-from visualization import dimensions_per_feature
+from visualization import (
+    visualize_superposition,
+    plot_weights_and_bias,
+)  # , dimensions_per_feature
 
 MODELS_PATHNAME = "./model-weights/section4/"
 device = "cpu"
+
+# # %% single training run to look for hyper parameters
+# input_dim = 200
+# hidden_dim = 15
+# importance = t.ones(input_dim)
+
+# sparsity = 0.9
+# data = generate_synthetic_data(input_dim, 200000, sparsity)
+# # %%
+# batch_size = 512
+# trainloader = DataLoader(tuple((data)), batch_size=batch_size)
+
+# model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
+# loss = train(model, trainloader, epochs=10, lr=0.01)
+# loss = train(model, trainloader, epochs=6, lr=0.001)
+# loss = train(model, trainloader, epochs=2, lr=0.0005)
+
+# # %% and visualize
+# W = model.weights.data
+# b = model.bias.data
+# plot_weights_and_bias(W, b)
+# visualize_superposition(t.tensor(W), sparsity)
+# print(W[:10, :10])
 
 # %% Train models
 NUM_GRIDPOINTS = 40
@@ -26,7 +52,7 @@ reduce_to_dim = 30
 importance = t.ones(num_features)
 
 size_trainingdata = 200000
-batch_size = 128
+batch_size = 512
 epochs = 25
 
 datasets = {}
@@ -58,6 +84,3 @@ for sparsity in SPARSITIES:
         )
         loss = train(models[sparsity], trainloaders[sparsity], epochs=epochs)
         t.save(models[sparsity].state_dict(), model_filename)
-
-
-# %%
