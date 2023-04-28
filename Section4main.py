@@ -11,29 +11,26 @@ import matplotlib as mlp
 import matplotlib.pyplot as plt
 
 from training import generate_synthetic_data, train, ProjectAndRecover
-from visualization import (
-    visualize_superposition,
-    plot_weights_and_bias,
-)  # , dimensions_per_feature
+from visualization import dimensions_per_feature, feature_dimensionality
 
 MODELS_PATHNAME = "./model-weights/section4/"
 device = "cpu"
 
-# # %% single training run to look for hyper parameters
-# input_dim = 200
-# hidden_dim = 15
-# importance = t.ones(input_dim)
+# %% single training run to look for hyper parameters
+input_dim = 200
+hidden_dim = 15
+importance = t.ones(input_dim)
 
-# sparsity = 0.9
-# data = generate_synthetic_data(input_dim, 200000, sparsity)
-# # %%
-# batch_size = 512
-# trainloader = DataLoader(tuple((data)), batch_size=batch_size)
+sparsity = 0.9
+data = generate_synthetic_data(input_dim, 200000, sparsity)
 
-# model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-# loss = train(model, trainloader, epochs=10, lr=0.01)
-# loss = train(model, trainloader, epochs=6, lr=0.001)
-# loss = train(model, trainloader, epochs=2, lr=0.0005)
+batch_size = 512
+trainloader = DataLoader(tuple((data)), batch_size=batch_size)
+
+model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
+loss = train(model, trainloader, epochs=10, lr=0.01)
+loss = train(model, trainloader, epochs=6, lr=0.001)
+loss = train(model, trainloader, epochs=2, lr=0.0005)
 
 # # %% and visualize
 # W = model.weights.data
@@ -45,42 +42,41 @@ device = "cpu"
 # %% Train models
 NUM_GRIDPOINTS = 40
 GRIDPOINTS = t.logspace(0, 2, NUM_GRIDPOINTS)  # log(1) = 0, log(10) = 2
-SPARSITIES = -1 / GRIDPOINTS + 1
+SPARSITIES = -1 / GRIDPOINTS + 1  # 1/(1-sparsities) ranges from 1 to 10 on log scale
 
-num_features = 400
-reduce_to_dim = 30
+num_features = 200
+reduce_to_dim = 15
 importance = t.ones(num_features)
 
 size_trainingdata = 200000
 batch_size = 512
-epochs = 25
 
 datasets = {}
 trainloaders = {}
 models = {}
+losses = {}
 
-for sparsity in SPARSITIES:
-    datasets[sparsity] = generate_synthetic_data(
-        num_features, size_trainingdata, sparsity
-    )
-    trainloaders[sparsity] = DataLoader(
-        tuple((datasets[sparsity])), batch_size=batch_size
-    )
-    model_filename = MODELS_PATHNAME + "sparsity" + str(sparsity)
+for index, sparsity in enumerate(SPARSITIES[:15]):
+    datasets[index] = generate_synthetic_data(num_features, size_trainingdata, sparsity)
+    trainloaders[index] = DataLoader(tuple((datasets[index])), batch_size=batch_size)
+    model_filename = MODELS_PATHNAME + "model" + str(index)
     if os.path.exists(model_filename):
-        print("Loading model from disk: ", model_filename)
-        models[sparsity] = (
+        print("Index", index, ": Loading model from disk: ", model_filename)
+        models[index] = (
             ProjectAndRecover(num_features, reduce_to_dim, importance)
             .to(device)
             .train()
         )
-        models[sparsity].load_state_dict(t.load(model_filename))
+        models[index].load_state_dict(t.load(model_filename))
     else:
-        print("Training model from scratch")
-        models[sparsity] = (
+        print("Index", index, ": Training model from scratch")
+        models[index] = (
             ProjectAndRecover(num_features, reduce_to_dim, importance)
             .to(device)
             .train()
         )
-        loss = train(models[sparsity], trainloaders[sparsity], epochs=epochs)
-        t.save(models[sparsity].state_dict(), model_filename)
+        loss = train(models[index], trainloader, epochs=10, lr=0.01)
+        loss = train(models[index], trainloader, epochs=6, lr=0.001)
+        loss = train(models[index], trainloader, epochs=2, lr=0.0005)
+        losses[index] = loss
+        t.save(models[index].state_dict(), model_filename)
