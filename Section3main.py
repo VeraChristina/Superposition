@@ -29,7 +29,7 @@ NUM_GRIDPOINTS = 40
 SPARSITIES = 1 - t.logspace(0, -2, NUM_GRIDPOINTS)
 IMPORTANCES = t.logspace(-1, 1, NUM_GRIDPOINTS)
 # sparsities between 0 and .99 corresponding to densities on log scale from 1 to .01 (log(1) = 0, log(.01) = -2)
-# relative importances between .1 and 10 on log scale (log(-1) = .1, log(1)= 10)
+# relative importances between .1 and 10 on log scale (log(.1) = -1, log(10)= 1)
 
 if __name__ == "__main__":
     data = {}
@@ -50,7 +50,7 @@ def train_multiple(
     no_printing: bool = False,
     no_training: bool = False,
 ) -> list:
-    """Initializes and trains num_dupl ProjectandRecover models for each value in rel_importances,
+    """Initializes and trains num_dupl ReLU output models for each value in rel_importances,
     with given input_dim, hidden_dim and sparsity index
     If no_printing = True, epoch losses and training progress bar is not printed
     If no_training = True, model is only initialized and losses set to None
