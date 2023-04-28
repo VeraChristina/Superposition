@@ -48,9 +48,12 @@ def train_multiple(
     sparsity_ind,
     num_dupl: int = 10,
     no_printing: bool = False,
+    no_training: bool = False,
 ) -> list:
     """Initializes and trains num_dupl ProjectandRecover models for each value in rel_importances,
     with given input_dim, hidden_dim and sparsity index
+    If no_printing = True, epoch losses and training progress bar is not printed
+    If no_training = True, model is only initialized and losses set to None
 
     output: one ProjectAndRecover model containing all trained models, weight shape: (num_importances * num_dupl, hidden_dim, input_dim)
     tensor of losses for all trained models, shape: (num_importances * num_dupl)
@@ -65,9 +68,16 @@ def train_multiple(
     models = ProjectAndRecover(
         input_dim, hidden_dim, importance_matrix, multiple=num_models
     )
-    losses = train(
-        models, trainloaders[sparsity_ind], epochs=3, lr=0.01, no_printing=no_printing
-    )
+    if no_training == False:
+        losses = train(
+            models,
+            trainloaders[sparsity_ind],
+            epochs=3,
+            lr=0.01,
+            no_printing=no_printing,
+        )
+    else:
+        losses = None
     return models, losses
 
 
@@ -182,36 +192,34 @@ if __name__ == "__main__":
     ax[1].imshow(colors_best)
     plt.show()
 
-# %% Loss Map to check for local minima -- bias set to [-.1695, .0304] obtained from last training run
-loss_map = t.zeros((100, 100))
+# %% Loss Map to visualize local minima -- bias set to [-.1695, .0304] obtained from last training run
+if __name__ == "__main__":
+    loss_map = t.zeros((100, 100))
 
+    def get_loss(w_1: t.Tensor, w_2: t.Tensor) -> t.Tensor:
+        W = t.stack([w_1, w_2])
+        x = t.einsum("i, b i -> b", W, data[19])
+        x = t.relu(t.einsum("i, b -> b i", W, x) + t.tensor([-0.1695, 0.0304]))
+        x = weighted_MSE(x, data[19], t.tensor([1, 1]))
+        return x.sum()
 
-def get_loss(w_1: t.Tensor, w_2: t.Tensor) -> t.Tensor:
-    W = t.stack([w_1, w_2])
-    x = t.einsum("i, b i -> b", W, data[19])
-    x = t.relu(t.einsum("i, b -> b i", W, x) + t.tensor([-0.1695, 0.0304]))
-    x = weighted_MSE(x, data[19], t.tensor([1, 1]))
-    return x.sum()
-
-
-for i in range(100):
-    for j in range(100):
-        loss_map[i][j] = get_loss(t.tensor((i - 50) / 40), t.tensor((j - 50) / 40))
-
-# %%
-cut_off = t.clamp(loss_map, 0.015, 0.0185)
-
-fig2, ax = plt.subplots()
-ax.imshow(cut_off, cmap="cividis")
-
-ax.set_xticks([10, 49, 90])
-ax.set_xticklabels([-1, 0, 1])
-ax.set_yticks([10, 49, 90])
-ax.set_yticklabels([-1, 0, 1])
-ax.set_ylabel(r"$w_1$")
-ax.set_xlabel(r"$w_2$")
-ax.set_title(r"clipped empirical loss for $W=[w_1, w_2]$")
-ax.set_label("rel_importance = 1.0, sparsity = 0.9, fixed bias")
-plt.show()
+    for i in range(100):
+        for j in range(100):
+            loss_map[i][j] = get_loss(t.tensor((i - 50) / 40), t.tensor((j - 50) / 40))
 
 # %%
+if __name__ == "__main__":
+    cut_off = t.clamp(loss_map, 0.015, 0.0185)
+
+    fig2, ax = plt.subplots()
+    ax.imshow(cut_off, cmap="cividis")
+
+    ax.set_xticks([10, 49, 90])
+    ax.set_xticklabels([-1, 0, 1])
+    ax.set_yticks([10, 49, 90])
+    ax.set_yticklabels([-1, 0, 1])
+    ax.set_ylabel(r"$w_1$")
+    ax.set_xlabel(r"$w_2$")
+    ax.set_title(r"clipped empirical loss for $W=[w_1, w_2]$")
+    ax.set_label("rel_importance = 1.0, sparsity = 0.9, fixed bias")
+    plt.show()
