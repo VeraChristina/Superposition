@@ -136,7 +136,25 @@ if __name__ == "__main__":
 
 
 # %% Section 4
-def dimensions_per_feature(matrix: t.Tensor) -> t.Tensor:
+def dimensions_per_feature(matrix: t.Tensor) -> float:
+    """Compute dimensions per feature, i.e. hidden_dim divided by Frobenius norm of matrix
+
+    input: matrix of shape (hidden_dim, input features)
+    return: float
+    """
+    hidden_dim = matrix.shape[0]
+    frobenius_norm = (matrix * matrix).sum()
+    frobenius_norm = frobenius_norm.item()
+    print(hidden_dim, frobenius_norm)
+    return hidden_dim / frobenius_norm
+
+
+if __name__ == "__main__":
+    M = t.tensor([[1, 0, 0], [0, 1, 0]])
+    print(dimensions_per_feature(M))
+
+
+def feature_dimensionality(matrix: t.Tensor) -> t.Tensor:
     """Compute vector of dimensionalities per feature as defined in Section 4 of the paper,
     i.e. the dimensionality of the i-th feature is given by the quotient of its representation by its superposition
 
@@ -145,3 +163,6 @@ def dimensions_per_feature(matrix: t.Tensor) -> t.Tensor:
     """
     representation, superposition = superposition_metric(matrix)
     return representation / superposition
+
+
+# %%
