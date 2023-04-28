@@ -145,7 +145,6 @@ def dimensions_per_feature(matrix: t.Tensor) -> float:
     hidden_dim = matrix.shape[0]
     frobenius_norm = (matrix * matrix).sum()
     frobenius_norm = frobenius_norm.item()
-    print(hidden_dim, frobenius_norm)
     return hidden_dim / frobenius_norm
 
 

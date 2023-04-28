@@ -17,29 +17,23 @@ MODELS_PATHNAME = "./model-weights/section4/"
 device = "cpu"
 
 # %% single training run to look for hyper parameters
-input_dim = 200
-hidden_dim = 15
-importance = t.ones(input_dim)
+# input_dim = 200
+# hidden_dim = 15
+# importance = t.ones(input_dim)
 
-sparsity = 0.25
-data = generate_synthetic_data(input_dim, 200000, sparsity)
+# sparsity = 0.25
+# data = generate_synthetic_data(input_dim, 200000, sparsity)
 
-batch_size = 512
-trainloader = DataLoader(tuple((data)), batch_size=batch_size)
+# batch_size = 512
+# trainloader = DataLoader(tuple((data)), batch_size=batch_size)
 
-model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-loss = train(model, trainloader, epochs=10, lr=0.01)
-loss = train(model, trainloader, epochs=6, lr=0.001)
-loss = train(model, trainloader, epochs=2, lr=0.0005)
+# model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
+# loss = train(model, trainloader, epochs=10, lr=0.01)
+# loss = train(model, trainloader, epochs=6, lr=0.001)
+# loss = train(model, trainloader, epochs=2, lr=0.0005)
 
-# # # %% and visualize
-# W = model.weights.data
-# b = model.bias.data
-# plot_weights_and_bias(W, b)
-# visualize_superposition(t.tensor(W), sparsity)
-# print(W[:10, :10])
 
-# %% Train and save models
+# %% Train and save models / Load models
 NUM_GRIDPOINTS = 40
 GRIDPOINTS = t.logspace(0, 1, NUM_GRIDPOINTS)  # log(1) = 0, log(10) = 1
 SPARSITIES = -1 / GRIDPOINTS + 1  # 1/(1-sparsities) ranges from 1 to 10 on log scale
@@ -83,5 +77,16 @@ for index, sparsity in enumerate(SPARSITIES):
         losses[index] = loss
         t.save(models[index].state_dict(), model_filename)
         t.save(losses, losses_filename)
+
+# %% Visualization
+dimensionalities = []
+
+for index in range(NUM_GRIDPOINTS):
+    weight_matrix = models[index].weights
+    dimensionalities.append(dimensions_per_feature(weight_matrix))
+
+fig, ax = plt.subplot()
+ax.plot(range(40), dimensionalities)
+plt.show()
 
 # %%
