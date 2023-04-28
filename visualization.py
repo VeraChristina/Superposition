@@ -26,7 +26,7 @@ def plot_weights_and_bias(W, b):
     plt.show()
 
 
-# %% Visualization
+# %% Superposition mectrics
 def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     """Compute metrics for representation and superposition for all column vectors
 
@@ -70,6 +70,7 @@ def vectorized_superposition_metric(matrices: t.Tensor) -> list[t.Tensor]:
     return (representation, superposition)
 
 
+# %% visualize superposition
 def visualize_superposition(W: t.Tensor, sparsity: float, ax=None):
     """Plot histogram of superposition metric wrt all features
     W: input matrix of shape (hidden_dim, num_features)
@@ -99,41 +100,6 @@ def visualize_superposition(W: t.Tensor, sparsity: float, ax=None):
 
     if ax == None:
         plt.show()
-
-
-# %% load trained models
-if __name__ == "__main__":
-    small_models = {}
-    load_models_section2(small_models)
-
-    big_models = {}
-    load_models_section2(big_models, big=True)
-
-# %%
-if __name__ == "__main__":
-    i = 4  # choose i <= 6
-    model = small_models[SPARSITIES[i]]
-    plot_weights_and_bias(model.weights.data, model.bias.data)
-    visualize_superposition(model.weights, SPARSITIES[i])
-# %%
-if __name__ == "__main__":
-    fig = plt.figure(figsize=(21.6, 3))
-    grid = ImageGrid(fig, 111, nrows_ncols=(1, 14), axes_pad=0.1)
-    plotpairs = []
-    for sparsity in SPARSITIES:
-        W, b = small_models[sparsity].weights.data, small_models[sparsity].bias.data
-        plotpairs += [W.T @ W, b.reshape((len(b), 1))]
-    for ax, im in zip(grid, plotpairs):
-        ax.set_axis_off()
-        ax.imshow(im, origin="upper", vmin=-1, vmax=1, cmap=mlp.colormaps["PiYG"])
-        # ax.set_label(f'W^t W and b for sparsity {sparsity}')
-    plt.show()
-
-    fig = plt.figure(figsize=(8, 28))
-    for index in range(7):
-        ax = plt.subplot(171 + index)
-        W = small_models[SPARSITIES[index]].weights
-        visualize_superposition(W, SPARSITIES[index], ax)
 
 
 # %% 2D colors for Section 3
@@ -168,4 +134,14 @@ if __name__ == "__main__":
     ax.imshow(matrix)
     plt.show()
 
-# %%
+
+# %% Section 4
+def dimensions_per_feature(matrix: t.Tensor) -> t.Tensor:
+    """Compute vector of dimensionalities per feature as defined in Section 4 of the paper,
+    i.e. the dimensionality of the i-th feature is given by the quotient of its representation by its superposition
+
+    input: matrix of shape ( _ , num_features)
+    return: tensor of shape (num_features) whose i-th entry is the dimensionality of i-th feature
+    """
+    representation, superposition = superposition_metric(matrix)
+    return representation / superposition
