@@ -11,7 +11,11 @@ import matplotlib as mlp
 import matplotlib.pyplot as plt
 
 from training import generate_synthetic_data, train, ProjectAndRecover
-from visualization import dimensions_per_feature, feature_dimensionality
+from visualization import (
+    dimensions_per_feature,
+    feature_dimensionality,
+    plot_weights_and_bias,
+)
 
 MODELS_PATHNAME = "./model-weights/section4/"
 device = "cpu"
@@ -48,11 +52,6 @@ batch_size = 512
 
 models = {}
 
-# losses = [None for _ in range(NUM_GRIDPOINTS)]
-# losses_filename = MODELS_PATHNAME + "losses"
-# if os.path.exists(losses_filename):
-#     losses = t.load(losses_filename)
-
 for index, sparsity in enumerate(SPARSITIES):
     model_filename = MODELS_PATHNAME + "model" + str(index)
     if os.path.exists(model_filename):
@@ -81,22 +80,18 @@ for index, sparsity in enumerate(SPARSITIES):
         else:
             loss = train(models[index], trainloader, epochs=15, lr=0.0002)
 
-        # losses[index] = loss
         t.save(models[index].state_dict(), model_filename)
-        # t.save(losses, losses_filename)
-# %% train more
-index = 2
-dataset = generate_synthetic_data(num_features, size_trainingdata, SPARSITIES[index])
-trainloader = DataLoader(tuple((dataset)), batch_size=512)
+# # %% train more
+# index = 2
+# dataset = generate_synthetic_data(num_features, size_trainingdata, SPARSITIES[index])
+# trainloader = DataLoader(tuple((dataset)), batch_size=512)
 
-models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device)
-model_filename = MODELS_PATHNAME + "model" + str(index)
-models[index].load_state_dict(t.load(model_filename))
-loss = train(models[index], trainloader, epochs=20, lr=0.0001)
-# losses[index] = loss
-t.save(models[index].state_dict(), model_filename)
-# t.save(losses, losses_filename)
-print(dimensions_per_feature(models[index].weights))
+# models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device)
+# model_filename = MODELS_PATHNAME + "model" + str(index)
+# models[index].load_state_dict(t.load(model_filename))
+# loss = train(models[index], trainloader, epochs=20, lr=0.0001)
+# t.save(models[index].state_dict(), model_filename)
+# print(dimensions_per_feature(models[index].weights))
 
 # %% Visualization
 dimensionalities = []
@@ -113,5 +108,6 @@ ax.set_xlabel("1/(1-sparsity)")
 ax.set_ylabel("dimensions per feature")
 plt.show()
 
-
+# %%
+plot_weights_and_bias(models[25].weights.detach(), models[25].bias.detach())
 # %%
