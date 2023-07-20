@@ -82,16 +82,18 @@ for index, sparsity in enumerate(SPARSITIES):
 
         t.save(models[index].state_dict(), model_filename)
 # %% train more
-index = 0
-dataset = generate_synthetic_data(num_features, size_trainingdata, SPARSITIES[index])
-trainloader = DataLoader(tuple((dataset)), batch_size=512)
+for index, sparsity in enumerate(SPARSITIES):
+    dataset = generate_synthetic_data(num_features, size_trainingdata, sparsity)
+    trainloader = DataLoader(tuple((dataset)), batch_size=64)
 
-models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device)
-model_filename = MODELS_PATHNAME + "model" + str(index)
-models[index].load_state_dict(t.load(model_filename))
-loss = train(models[index], trainloader, epochs=20, lr=0.0001)
-t.save(models[index].state_dict(), model_filename)
-print(dimensions_per_feature(models[index].weights))
+    models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(
+        device
+    )
+    model_filename = MODELS_PATHNAME + "model" + str(index)
+    models[index].load_state_dict(t.load(model_filename))
+    loss = train(models[index], trainloader, epochs=10, lr=0.0001, no_printing=True)
+    t.save(models[index].state_dict(), model_filename)
+    print(dimensions_per_feature(models[index].weights))
 
 # %% Visualization
 dimensionalities = []
@@ -107,7 +109,7 @@ for index in range(NUM_GRIDPOINTS):
 epsilon = t.linspace(-0.01, 0.01, feature_dimensionalities[0].shape[0])
 
 fig, ax = plt.subplots()
-ax.plot(GRIDPOINTS, dimensionalities)
+ax.plot(GRIDPOINTS, dimensionalities, linewidth=0.3)
 
 ax.set_xscale("log")
 ax.set_yticks([0, 0.5, 1])
@@ -125,10 +127,14 @@ for index, gridpoint in enumerate(GRIDPOINTS):
         c="black",
     )
 
-plt.axhline(y=0.5, color="y", linestyle="-", alpha=0.5)
-plt.axhline(y=3 / 4, color="b", linestyle="-", alpha=0.5)
-plt.axhline(y=2 / 3, color="g", linestyle="-", alpha=0.5)
-plt.axhline(y=2 / 5, color="orange", linestyle="-", alpha=0.5)
-plt.axhline(y=3 / 8, color="purple", linestyle="-", alpha=0.5)
+plt.axhline(y=1, color="m", linestyle="-", alpha=0.5, linewidth=2)
+plt.axhline(y=0.5, color="y", linestyle="-", alpha=0.5, linewidth=2)
+plt.axhline(y=3 / 4, color="b", linestyle="-", alpha=0.5, linewidth=2)
+plt.axhline(y=2 / 3, color="g", linestyle="-", alpha=0.5, linewidth=2)
+plt.axhline(y=2 / 5, color="orange", linestyle="-", alpha=0.5, linewidth=2)
+plt.axhline(y=3 / 8, color="purple", linestyle="-", alpha=0.5, linewidth=2)
+plt.axhline(y=0, color="r", linestyle="-", alpha=0.5, linewidth=2)
 
 plt.show()
+
+# %%

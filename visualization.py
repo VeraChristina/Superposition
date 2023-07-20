@@ -155,13 +155,14 @@ if __name__ == "__main__":
 
 def feature_dimensionality(matrix: t.Tensor) -> t.Tensor:
     """Compute vector of dimensionalities per feature as defined in Section 4 of the paper,
-    i.e. the dimensionality of the i-th feature is given by the quotient of its representation by its superposition
+    i.e. for each feature the quotient representation / (representation + superposition)
 
     input: matrix of shape ( _ , num_features)
     return: tensor of shape (num_features) whose i-th entry is the dimensionality of i-th feature
     """
     representation, superposition = superposition_metric(matrix)
-    return representation / (representation + superposition)
+    adjusted_norm = representation**2 / representation
+    return representation / (adjusted_norm + superposition)
 
 
 # %%
