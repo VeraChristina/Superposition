@@ -161,7 +161,7 @@ def feature_dimensionality(matrix: t.Tensor) -> t.Tensor:
     return: tensor of shape (num_features) whose i-th entry is the dimensionality of i-th feature
     """
     representation, superposition = superposition_metric(matrix)
-    return representation / superposition
+    return representation / (representation + superposition)
 
 
 # %%

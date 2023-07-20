@@ -81,33 +81,54 @@ for index, sparsity in enumerate(SPARSITIES):
             loss = train(models[index], trainloader, epochs=15, lr=0.0002)
 
         t.save(models[index].state_dict(), model_filename)
-# # %% train more
-# index = 2
-# dataset = generate_synthetic_data(num_features, size_trainingdata, SPARSITIES[index])
-# trainloader = DataLoader(tuple((dataset)), batch_size=512)
+# %% train more
+index = 0
+dataset = generate_synthetic_data(num_features, size_trainingdata, SPARSITIES[index])
+trainloader = DataLoader(tuple((dataset)), batch_size=512)
 
-# models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device)
-# model_filename = MODELS_PATHNAME + "model" + str(index)
-# models[index].load_state_dict(t.load(model_filename))
-# loss = train(models[index], trainloader, epochs=20, lr=0.0001)
-# t.save(models[index].state_dict(), model_filename)
-# print(dimensions_per_feature(models[index].weights))
+models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(device)
+model_filename = MODELS_PATHNAME + "model" + str(index)
+models[index].load_state_dict(t.load(model_filename))
+loss = train(models[index], trainloader, epochs=20, lr=0.0001)
+t.save(models[index].state_dict(), model_filename)
+print(dimensions_per_feature(models[index].weights))
 
 # %% Visualization
 dimensionalities = []
+feature_dimensionalities = []
 
 for index in range(NUM_GRIDPOINTS):
     weight_matrix = models[index].weights
     dimensionalities.append(dimensions_per_feature(weight_matrix))
+    feature_dimensionalities.append(feature_dimensionality(weight_matrix))
+
+
+# %%
+epsilon = t.linspace(-0.01, 0.01, feature_dimensionalities[0].shape[0])
 
 fig, ax = plt.subplots()
 ax.plot(GRIDPOINTS, dimensionalities)
+
 ax.set_xscale("log")
 ax.set_yticks([0, 0.5, 1])
 ax.set_xlabel("1/(1-sparsity)")
 ax.set_ylabel("dimensions per feature")
-plt.show()
 
-# %%
-plot_weights_and_bias(models[25].weights.detach(), models[25].bias.detach())
-# %%
+for index, gridpoint in enumerate(GRIDPOINTS):
+    scaling_factor = gridpoint / 10
+    feature_gridpoints = (epsilon * scaling_factor + gridpoint).detach().numpy()
+    ax.scatter(
+        feature_gridpoints,
+        feature_dimensionalities[index].detach().numpy(),
+        marker=".",
+        s=0.8,
+        c="black",
+    )
+
+plt.axhline(y=0.5, color="y", linestyle="-", alpha=0.5)
+plt.axhline(y=3 / 4, color="b", linestyle="-", alpha=0.5)
+plt.axhline(y=2 / 3, color="g", linestyle="-", alpha=0.5)
+plt.axhline(y=2 / 5, color="orange", linestyle="-", alpha=0.5)
+plt.axhline(y=3 / 8, color="purple", linestyle="-", alpha=0.5)
+
+plt.show()
