@@ -81,6 +81,7 @@ for index, sparsity in enumerate(SPARSITIES):
             loss = train(models[index], trainloader, epochs=15, lr=0.0002)
 
         t.save(models[index].state_dict(), model_filename)
+
 # %% train more
 for index, sparsity in enumerate(SPARSITIES):
     dataset = generate_synthetic_data(num_features, size_trainingdata, sparsity)
@@ -91,7 +92,7 @@ for index, sparsity in enumerate(SPARSITIES):
     )
     model_filename = MODELS_PATHNAME + "model" + str(index)
     models[index].load_state_dict(t.load(model_filename))
-    loss = train(models[index], trainloader, epochs=10, lr=0.0001, no_printing=True)
+    loss = train(models[index], trainloader, epochs=10, lr=0.00001, no_printing=True)
     t.save(models[index].state_dict(), model_filename)
     print(dimensions_per_feature(models[index].weights))
 
@@ -106,7 +107,7 @@ for index in range(NUM_GRIDPOINTS):
 
 
 # %%
-epsilon = t.linspace(-0.01, 0.01, feature_dimensionalities[0].shape[0])
+epsilon = t.linspace(-0.02, 0.02, feature_dimensionalities[0].shape[0])
 
 fig, ax = plt.subplots()
 ax.plot(GRIDPOINTS, dimensionalities, linewidth=0.3)
@@ -123,7 +124,7 @@ for index, gridpoint in enumerate(GRIDPOINTS):
         feature_gridpoints,
         feature_dimensionalities[index].detach().numpy(),
         marker=".",
-        s=0.8,
+        s=0.2,
         c="black",
     )
 

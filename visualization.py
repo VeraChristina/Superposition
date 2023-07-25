@@ -34,7 +34,7 @@ def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     new: boolean -- indicates which superposition metric to compute
 
     Return: pair (representation, superposition) where
-    representation: tensor of shape (num_features) whose the j-th entry is the maximum norms of the column vectors W_j
+    representation: tensor of shape (num_features) whose j-th entry is the maximum norm of the column vector W_j
     superposition: tensor of shape (num_features),
     the j-th entry is the sum \sum_{i \neq j} (W_i * W_j)^2 over the squared inner product of W_j with all other column vectors W_i
     If new = True, the sum is normalized wrt the norm of W_j
@@ -154,15 +154,13 @@ if __name__ == "__main__":
 
 
 def feature_dimensionality(matrix: t.Tensor) -> t.Tensor:
-    """Compute vector of dimensionalities per feature as defined in Section 4 of the paper,
-    i.e. for each feature the quotient representation / (representation + superposition)
+    """Compute vector of dimensionalities per feature as defined in Section 4 of the paper
 
     input: matrix of shape ( _ , num_features)
     return: tensor of shape (num_features) whose i-th entry is the dimensionality of i-th feature
     """
     representation, superposition = superposition_metric(matrix)
-    adjusted_norm = representation**2 / representation
-    return representation / (adjusted_norm + superposition)
+    return representation**2 / (representation**2 + superposition)
 
 
 # %%
