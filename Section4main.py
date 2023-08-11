@@ -82,19 +82,19 @@ for index, sparsity in enumerate(SPARSITIES):
 
         t.save(models[index].state_dict(), model_filename)
 
-# %% train more
-for index, sparsity in enumerate(SPARSITIES):
-    dataset = generate_synthetic_data(num_features, size_trainingdata, sparsity)
-    trainloader = DataLoader(tuple((dataset)), batch_size=64)
+# # %% train more
+# for index, sparsity in enumerate(SPARSITIES):
+#     dataset = generate_synthetic_data(num_features, size_trainingdata, sparsity)
+#     trainloader = DataLoader(tuple((dataset)), batch_size=64)
 
-    models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(
-        device
-    )
-    model_filename = MODELS_PATHNAME + "model" + str(index)
-    models[index].load_state_dict(t.load(model_filename))
-    loss = train(models[index], trainloader, epochs=10, lr=0.00001, no_printing=True)
-    t.save(models[index].state_dict(), model_filename)
-    print(dimensions_per_feature(models[index].weights))
+#     models[index] = ProjectAndRecover(num_features, reduce_to_dim, importance).to(
+#         device
+#     )
+#     model_filename = MODELS_PATHNAME + "model" + str(index)
+#     models[index].load_state_dict(t.load(model_filename))
+#     loss = train(models[index], trainloader, epochs=10, lr=0.00001, no_printing=True)
+#     t.save(models[index].state_dict(), model_filename)
+#     print(dimensions_per_feature(models[index].weights))
 
 # %% Visualization
 dimensionalities = []
@@ -106,11 +106,10 @@ for index in range(NUM_GRIDPOINTS):
     feature_dimensionalities.append(feature_dimensionality(weight_matrix))
 
 
-# %%
 epsilon = t.linspace(-0.02, 0.02, feature_dimensionalities[0].shape[0])
 
 fig, ax = plt.subplots()
-ax.plot(GRIDPOINTS, dimensionalities, linewidth=0.3)
+ax.plot(GRIDPOINTS, dimensionalities, linewidth=0.5, color="black")
 
 ax.set_xscale("log")
 ax.set_yticks([0, 0.5, 1])
