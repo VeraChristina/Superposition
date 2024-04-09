@@ -10,14 +10,14 @@ import matplotlib as mlp
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 
-from training import (
+from src.training import (
     ProjectAndRecover,
     Config_PaR,
     generate_synthetic_data,
     weighted_MSE,
     train,
 )
-from visualization import vectorized_superposition_metric, get_color_2d
+from src.visualization import vectorized_superposition_metric, get_color_2d
 
 
 MODELS_PATHNAME = "./model-weights/section3/"

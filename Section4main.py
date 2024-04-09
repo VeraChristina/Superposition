@@ -10,8 +10,8 @@ from tqdm.auto import tqdm
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 
-from training import generate_synthetic_data, train, ProjectAndRecover
-from visualization import (
+from src.training import generate_synthetic_data, train, ProjectAndRecover
+from src.visualization import (
     dimensions_per_feature,
     feature_dimensionality,
     plot_weights_and_bias,

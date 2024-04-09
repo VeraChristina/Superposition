@@ -1,8 +1,8 @@
 import torch as t
 from einops import reduce
-from utils import allclose, assert_all_equal
+from src.utils import allclose, assert_all_equal
 
-from training import generate_synthetic_data, weighted_MSE
+from src.training import generate_synthetic_data, weighted_MSE
 
 
 def compare_data_sparsity(data, target_sparsity):

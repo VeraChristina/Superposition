@@ -1,6 +1,6 @@
 import torch as t
-from utils import assert_all_equal, allclose
-from visualization import superposition_metric
+from src.utils import assert_all_equal, allclose
+from src.visualization import superposition_metric
 
 def test_superposition_metric():
     matrix_diag = t.cat([t.diag(t.arange(3)), t.diag(t.tensor([0., 0., 3.]))], dim = 1)

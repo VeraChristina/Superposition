@@ -12,13 +12,13 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import ImageGrid
 from matplotlib.pyplot import matshow
 
-from training import (
+from src.training import (
     generate_synthetic_data,
     train,
     ProjectAndRecover,
     load_models_section2,
 )
-from visualization import plot_weights_and_bias, visualize_superposition
+from src.visualization import plot_weights_and_bias, visualize_superposition
 
 SMALL_MODELS_PATHNAME = "./model-weights/section2-small/"
 BIG_MODELS_PATHNAME = "./model-weights/section2-big/"

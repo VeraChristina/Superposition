@@ -1,16 +1,14 @@
-#%% Test Data
-def test_data_sparsity(data, target_sparsity):
-    """test wether each feature in data is sparsely distributed, i.e. zero with probability sparsity"""
-    data = (data == t.tensor([0]))
-    empiric_sparsity = reduce(data, 'b f -> f', 'sum') / data.shape[0]
-    allclose(empiric_sparsity, t.ones(data.shape[1]) * target_sparsity, .01)
+import torch as t
+
 
 def assert_shape_equal(actual: t.Tensor, expected: t.Tensor) -> None:
+    """Assert that the shapes of actual and expected tensors are equal"""
     if actual.shape != expected.shape:
         raise AssertionError(f"expected shape={expected.shape}, got {actual.shape}")
 
 
 def allclose(actual: t.Tensor, expected: t.Tensor, rtol=1e-4) -> None:
+    """Assert that actual and expected have the same shape, and that all value deviations are smaller than rtol"""
     assert_shape_equal(actual, expected)
     left = (actual - expected).abs()
     right = rtol * expected.abs()
@@ -22,6 +20,11 @@ def allclose(actual: t.Tensor, expected: t.Tensor, rtol=1e-4) -> None:
     else:
         print(f"Test passed with max absolute deviation of {left.max()}")
 
-sparsity = 0.7
-data = generate_synthetic_data(30, 500000, sparsity)
-test_data_sparsity(data, sparsity)
+
+def assert_all_equal(actual: t.Tensor, expected: t.Tensor) -> None:
+    """Assert that actual and expected are exactly equal (to floating point precision)."""
+    mask = actual == expected
+    if not mask.all().item():
+        bad = mask.nonzero()
+        msg = f"Did not match at {len(bad)} indexes: {bad[:10]}{'...' if len(bad) > 10 else ''}"
+        raise AssertionError(f"{msg}\nActual:\n{actual}\nExpected:\n{expected}")

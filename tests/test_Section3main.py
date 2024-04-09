@@ -1,5 +1,5 @@
 import torch as t
-from utils import assert_shape_equal
+from src.utils import assert_shape_equal
 
 from Section3main import train_multiple, evaluate_multiple
 

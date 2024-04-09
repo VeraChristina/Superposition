@@ -1,4 +1,3 @@
-# %%
 import torch as t
 import os
 
@@ -13,7 +12,6 @@ SPARSITIES = [0.0, 0.7, 0.9, 0.97, 0.99, 0.997, 0.999]
 device = "cpu"
 
 
-# %% Data generation
 def generate_synthetic_data(
     num_features: int, size: int = 100000, sparsity: float = 1.0
 ) -> t.Tensor:
@@ -34,7 +32,6 @@ def generate_synthetic_data(
     return A
 
 
-# %% Model
 class ProjectAndRecover(t.nn.Module):
     """Model architechture according to Section 2 of the paper with option for multiple models
 
@@ -120,7 +117,6 @@ class Config_PaR:
             self.multiple = multiple
 
 
-# %% Loss function
 def weighted_MSE(x, x_hat, weights: t.Tensor, multiple: bool = False) -> t.Tensor:
     """Compute weighted MSE of x and x^hat wrt weights, with option for multiple models
     x shape: (batch, input_dim)
@@ -141,7 +137,6 @@ def weighted_MSE(x, x_hat, weights: t.Tensor, multiple: bool = False) -> t.Tenso
     return reduce(weighted_squared_error, "b m i -> m", "mean")
 
 
-# %% Training
 def train(
     model: ProjectAndRecover,
     trainloader: DataLoader,
@@ -175,26 +170,36 @@ def train(
     return epoch_losses
 
 
-# %% train one model
-if __name__ == "__main__":
-    input_dim = 20  # 20 for small models / 80 for big models
-    hidden_dim = 5  # 5 for small models / 20 for big models
-    importance_factor = 0.7  # .7 for small models / .9 for big models
-    importance = t.tensor([importance_factor**i for i in range(input_dim)])
+def load_models_section2(models: dict, big: bool = False):
+    """Load the models for Section 2 saved during training
+    models: empty dictionary in which to store the models
+    big: boolean that indicates whether to load the small models or the big models"""
+    assert models == {}
+    sparsities = SPARSITIES
 
-    sparsity = 0.07  # or any float in [0,1)
-    size_trainingdata = 100000
-    data = generate_synthetic_data(input_dim, 100000, sparsity)
+    config = Config_PaR(big=True) if big else Config_PaR()
+    pathname = BIG_MODELS_PATHNAME if big else SMALL_MODELS_PATHNAME
 
-    batch_size = 128
-    epochs = 25
-    trainloader = DataLoader(tuple((data)), batch_size=batch_size)
-    device = "cpu"
+    num_features = config.input_dim
+    reduce_to_dim = config.hidden_dim
+    importance = config.importance
 
-    model = ProjectAndRecover(input_dim, hidden_dim, importance).to(device).train()
-    loss = train(model, trainloader, epochs=epochs)
+    for sparsity in sparsities:
+        model_filename = pathname + str(sparsity)
+        if os.path.exists(model_filename):
+            models[sparsity] = (
+                ProjectAndRecover(num_features, reduce_to_dim, importance)
+                .to(device)
+                .train()
+            )
+            models[sparsity].load_state_dict(t.load(model_filename))
+            models[sparsity].eval()
+        else:
+            raise ImportError
 
-# %% Train different sparsities and store models for Section 2
+
+
+#  Train different sparsities and store models for Section 2
 if __name__ == "__main__":
     pathname = SMALL_MODELS_PATHNAME  # SMALL_MODELS_PATHNAME / BIG_MODELS_PATHNAME
     config = Config_PaR(big=False)  # big = False / big = True
@@ -238,40 +243,3 @@ if __name__ == "__main__":
             )
             loss = train(models[sparsity], trainloaders[sparsity], epochs=epochs)
             t.save(models[sparsity].state_dict(), model_filename)
-
-
-# %% If necessary, train more
-if __name__ == "__main__":
-    i = 4
-    sparsity = sparsities[i]
-    loss = train(models[sparsity], trainloaders[sparsity], epochs=10, lr=0.0001)
-    t.save(models[sparsity].state_dict(), pathname + str(sparsity))
-
-
-# %%
-def load_models_section2(models: dict, big: bool = False):
-    """Load the models for Section 2 saved during training
-    models: empty dictionary in which to store the models
-    big: boolean that indicates whether to load the small models or the big models"""
-    assert models == {}
-    sparsities = SPARSITIES
-
-    config = Config_PaR(big=True) if big else Config_PaR()
-    pathname = BIG_MODELS_PATHNAME if big else SMALL_MODELS_PATHNAME
-
-    num_features = config.input_dim
-    reduce_to_dim = config.hidden_dim
-    importance = config.importance
-
-    for sparsity in sparsities:
-        model_filename = pathname + str(sparsity)
-        if os.path.exists(model_filename):
-            models[sparsity] = (
-                ProjectAndRecover(num_features, reduce_to_dim, importance)
-                .to(device)
-                .train()
-            )
-            models[sparsity].load_state_dict(t.load(model_filename))
-            models[sparsity].eval()
-        else:
-            raise ImportError

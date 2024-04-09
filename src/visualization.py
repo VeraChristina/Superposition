@@ -1,4 +1,3 @@
-# %%
 import torch as t
 import os
 from einops import rearrange, reduce, repeat
@@ -14,7 +13,6 @@ BIG_MODELS_PATHNAME = "./model-weights/section2-big/"
 device = "cpu"
 
 
-# %% Heat maps
 def plot_weights_and_bias(W, b):
     """Plot heat map of W^T@W and b, where W is matrix of shape (m,n) and b vector of length m"""
     fig = plt.figure(figsize=(3.3, 3))
@@ -26,7 +24,6 @@ def plot_weights_and_bias(W, b):
     plt.show()
 
 
-# %% Superposition mectrics
 def superposition_metric(matrix: t.Tensor) -> list[t.Tensor]:
     """Compute metrics for representation and superposition for all column vectors
 
@@ -70,7 +67,6 @@ def vectorized_superposition_metric(matrices: t.Tensor) -> list[t.Tensor]:
     return (representation, superposition)
 
 
-# %% visualize superposition
 def visualize_superposition(W: t.Tensor, sparsity: float, ax=None):
     """Plot histogram of superposition metric wrt all features
     W: input matrix of shape (hidden_dim, num_features)
@@ -102,7 +98,6 @@ def visualize_superposition(W: t.Tensor, sparsity: float, ax=None):
         plt.show()
 
 
-# %% 2D colors for Section 3
 def get_color_2d(x: t.Tensor, y: t.Tensor):
     assert x.shape == y.shape
     shape = y.shape
@@ -116,26 +111,6 @@ def get_color_2d(x: t.Tensor, y: t.Tensor):
     return colors
 
 
-# %% print '2d colormap'
-if __name__ == "__main__":
-    matrix = t.zeros((100, 100))
-    colors = repeat(t.linspace(0, 1, 100), "t -> r t", r=100)
-    transparencies = repeat(t.linspace(1, 0, 100), "t -> t r", r=100)
-    matrix = get_color_2d(colors, transparencies)
-
-    fig1, ax = plt.subplots()
-    fig1.set_size_inches(2, 2)
-    ax.set_xticks([0, 99])
-    ax.set_xticklabels([0, r"$\geq 1$"])
-    ax.set_xlabel("superposition")
-    ax.set_yticks([0, 99])
-    ax.set_yticklabels([r"$\geq1$", 0])
-    ax.set_ylabel("representation")
-    ax.imshow(matrix)
-    plt.show()
-
-
-# %% Section 4
 def dimensions_per_feature(matrix: t.Tensor) -> float:
     """Compute dimensions per feature, i.e. hidden_dim divided by Frobenius norm of matrix
 
@@ -148,11 +123,6 @@ def dimensions_per_feature(matrix: t.Tensor) -> float:
     return hidden_dim / frobenius_norm
 
 
-if __name__ == "__main__":
-    M = t.tensor([[1, 0, 0], [0, 1, 0]])
-    print(dimensions_per_feature(M))
-
-
 def feature_dimensionality(matrix: t.Tensor) -> t.Tensor:
     """Compute vector of dimensionalities per feature as defined in Section 4 of the paper
 
@@ -161,6 +131,3 @@ def feature_dimensionality(matrix: t.Tensor) -> t.Tensor:
     """
     representation, superposition = superposition_metric(matrix)
     return representation**2 / (representation**2 + superposition)
-
-
-# %%
