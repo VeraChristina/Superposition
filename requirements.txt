@@ -1,0 +1,8 @@
+fancy_einsum
+einops
+pytest
+tqdm
+matplotlib
+ipykernel
+ipywidgets
+jupyter

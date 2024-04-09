@@ -16,3 +16,12 @@ A brief exposition of the results for this section is included in the notebook d
 
 ### Section 4 -- Geometry of Superposition
 We include a brief exposition of the results for two subsections of this section in the demo notebook, namely the sections on uniform superposition and feature dimensionality. As described in the paper, we see that there are a few preferred geometric configurations to store features and these vary with sparsity. In particular, we observe digons (2 features stored as antipodal pair in 1 dimension) and pentagons (five features stored as pentagon in two dimensions). We do not observe tetrahedra, and the triangle configuration might require further training or closer analysis; or, most promising, an incentive to learn basis-aligned features (which is not incentivised by default in the dense regime). For the implementation details, compare Section4main.py and vizalization.py.
+
+## Set-up
+If you want to run the code, use your preferred virtual environment (here miniconda) and install pytorch via conda, then requirements using pip.
+
+```
+conda create --name superpos_env python=3.9
+conda install --name superpos_env pytorch=1.11.0 torchtext torchdata torchvision cudatoolkit=11.3 -c pytorch -y
+conda run --name superpos_env pip install -r requirements.txt
+```
