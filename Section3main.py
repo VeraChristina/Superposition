@@ -1,4 +1,3 @@
-# %%
 import torch as t
 import os
 
@@ -12,9 +11,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 
 from src.training import (
     ProjectAndRecover,
-    Config_PaR,
     generate_synthetic_data,
-    weighted_MSE,
     train,
 )
 from src.visualization import vectorized_superposition_metric, get_color_2d
@@ -24,23 +21,13 @@ MODELS_PATHNAME = "./model-weights/section3/"
 device = "cpu"
 
 
-# %%
 NUM_GRIDPOINTS = 40
 SPARSITIES = 1 - t.logspace(0, -2, NUM_GRIDPOINTS)
 IMPORTANCES = t.logspace(-1, 1, NUM_GRIDPOINTS)
 # sparsities between 0 and .99 corresponding to densities on log scale from 1 to .01 (log(1) = 0, log(.01) = -2)
 # relative importances between .1 and 10 on log scale (log(.1) = -1, log(10)= 1)
 
-if __name__ == "__main__":
-    data = {}
-    trainloaders = {}
 
-    for ind, sparsity in enumerate(SPARSITIES):
-        data[ind] = generate_synthetic_data(2, 100000, sparsity)
-        trainloaders[ind] = DataLoader(data[ind], batch_size=128)
-
-
-# %%
 def train_multiple(
     input_dim,
     hidden_dim,
@@ -117,8 +104,16 @@ def evaluate_multiple(
 
     return representation, superposition
 
+if __name__ == "__main__":
+    data = {}
+    trainloaders = {}
 
-# #%% single training run for debugging
+    for ind, sparsity in enumerate(SPARSITIES):
+        data[ind] = generate_synthetic_data(2, 100000, sparsity)
+        trainloaders[ind] = DataLoader(data[ind], batch_size=128)
+
+
+# single training run for debugging
 # if __name__ == '__main__':
 #     input_dim = 2
 #     hidden_dim = 1
@@ -131,7 +126,8 @@ def evaluate_multiple(
 #     print(representation, superposition)
 #     print(models.weights, models.bias, losses)
 
-# %% Training run for grid
+
+# Training run for grid
 if __name__ == "__main__":
     models_section3 = {}
     losses = {}
@@ -147,7 +143,7 @@ if __name__ == "__main__":
             no_printing=True,
         )
 
-# %% Visualization for grid
+# Visualization for grid
 if __name__ == "__main__":
     representation_list = []
     superposition_list = []
@@ -190,36 +186,4 @@ if __name__ == "__main__":
     ax[0].set_yticklabels([1, 0.1, 0.01])
     ax[0].imshow(colors)
     ax[1].imshow(colors_best)
-    plt.show()
-
-# %% Loss Map to visualize local minima -- bias set to [-.1695, .0304] obtained from last training run
-if __name__ == "__main__":
-    loss_map = t.zeros((100, 100))
-
-    def get_loss(w_1: t.Tensor, w_2: t.Tensor) -> t.Tensor:
-        W = t.stack([w_1, w_2])
-        x = t.einsum("i, b i -> b", W, data[19])
-        x = t.relu(t.einsum("i, b -> b i", W, x) + t.tensor([-0.1695, 0.0304]))
-        x = weighted_MSE(x, data[19], t.tensor([1, 1]))
-        return x.sum()
-
-    for i in range(100):
-        for j in range(100):
-            loss_map[i][j] = get_loss(t.tensor((i - 50) / 40), t.tensor((j - 50) / 40))
-
-# %%
-if __name__ == "__main__":
-    cut_off = t.clamp(loss_map, 0.015, 0.0185)
-
-    fig2, ax = plt.subplots()
-    ax.imshow(cut_off, cmap="cividis")
-
-    ax.set_xticks([10, 49, 90])
-    ax.set_xticklabels([-1, 0, 1])
-    ax.set_yticks([10, 49, 90])
-    ax.set_yticklabels([-1, 0, 1])
-    ax.set_ylabel(r"$w_1$")
-    ax.set_xlabel(r"$w_2$")
-    ax.set_title(r"clipped empirical loss for $W=[w_1, w_2]$")
-    ax.set_label("rel_importance = 1.0, sparsity = 0.9, fixed bias")
     plt.show()
